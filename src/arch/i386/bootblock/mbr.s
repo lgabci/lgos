@@ -24,6 +24,7 @@
  * Steps:
  * -# BIOS loads MBR to 0x0000:0x7C000
  * -# relocate MBR to 0x0600:0x0000
+ * -# find active partition's boot sector
  * -# load boot sector to 0x0000:0x7C000 and start it
  *
  * Initial environment by BIOS:
