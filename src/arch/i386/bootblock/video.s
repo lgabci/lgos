@@ -1,5 +1,7 @@
 .arch i8086
-,code16
+.code16
+
+.include "video_inc.s"
 
 .if 0
 .doxygen-begin
@@ -27,7 +29,7 @@
  * Modified registers:
  * - AX, BH
  */
-void initvideo();
+void initvideo(void);
 .doxygen-end
 .endif
 
@@ -47,6 +49,17 @@ static unsigned char rows;
 .doxygen-end
 .endif
 rows: .byte 25
+
+.if 0
+.doxygen-begin
+/**
+ * @brief number of display rows,
+ * fixed value: 25
+ */
+static unsigned char color;
+.doxygen-end
+.endif
+color: .byte 0x07
 
 
 .section .bss  # ----------------------------------------------------------

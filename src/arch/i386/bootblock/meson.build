@@ -1,7 +1,7 @@
 # LGOS bootblock meson file
 
 mbr = executable('mbr.elf',
-                 'mbr.s',
+                 ['mbr.s', 'video.s'],
                  link_depends: ['mbr.ld'],
                  c_args: ['-Wa,-I,' + meson.current_source_dir()],
                  link_args: ['-T', meson.current_source_dir() + '/mbr.ld']
