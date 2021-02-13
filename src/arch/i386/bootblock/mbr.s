@@ -1,11 +1,11 @@
-.arch i8086
+.arch i8086,jumps
 .code16
 
 .if 0
 .doxygenr-begin
 /**
- * \dir bootblock
- * \brief i386 bootblock
+ * @dir bootblock
+ * @brief i386 bootblock
  *
  * bootblocks for:
  * - i386 MBR
@@ -14,6 +14,8 @@
  */
 .doxygen-end
 .endif
+
+.include "video_inc.s"
 
 .if 0
 .doxygen-begin
@@ -84,25 +86,24 @@
 .if 0
 .doxygen-begin
 /**
- * @brief i386 start function
+ * @brief i386 main function
  *
- * i386 start
+ * i386 main
  */
-void start();
+void main();
 .doxygen-end
 .endif
 
-.globl start
-start:
+.globl main
+main:
+        call    initvideo
 ## TODO -------------------------------------------------------------------
         movw    $0xb800, %ax
         movw    %ax, %ds
         movb    $'c', %al
         movb    $0x02, %ah
-        movw    $0x0000, %si
-        movw    %ax, (%si)
-1:
-        cli
+
+1:      cli
         hlt
         jmp     1b
 ## TODO -------------------------------------------------------------------

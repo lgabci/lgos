@@ -5,4 +5,4 @@ BUILDDIR=/tmp/lgos
 if [ ! -e "$BUILDDIR" ]; then
   mkdir "$BUILDDIR"
 fi
-doxygen doc/lgos.conf
+doxygen doc/doxygen.conf

@@ -1,0 +1,25 @@
+Build started at 2021-02-13T23:34:24.953679
+Main binary: /usr/bin/python3
+Python system: Linux
+The Meson build system
+Version: 0.49.2
+Source dir: /home/gabci/projects/lgos/src
+Build dir: /home/gabci/projects/lgos/src/compile
+Build type: native build
+Project name: lgos
+Project version: 0.0.1
+Sanity testing C compiler: cc
+Is cross compiler: False.
+Sanity check compiler command line: cc /home/gabci/projects/lgos/src/compile/meson-private/sanitycheckc.c -o /home/gabci/projects/lgos/src/compile/meson-private/sanitycheckc.exe
+Sanity check compile stdout:
+
+-----
+Sanity check compile stderr:
+
+-----
+Running test binary command: /home/gabci/projects/lgos/src/compile/meson-private/sanitycheckc.exe
+Native C compiler: cc (gcc 8.3.0 "cc (Debian 8.3.0-6) 8.3.0")
+Build machine cpu family: x86_64
+Build machine cpu: x86_64
+
+meson.build:10:0: ERROR:  Assert failed: Only cross builds enabled!
