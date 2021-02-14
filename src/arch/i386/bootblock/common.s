@@ -12,15 +12,29 @@
 .doxygen-end
 .endif
 
+.if 0
+.doxygen-begin
 /**
+ * @def BIOSSEG
  * @brief BIOS loads MBR to <tt>0x0000:0x7C00</tt>
  */
-.set BIOSSEG, 0x07C0
-
 /**
+ * @def RELOCSEG
  * @brief relocate  MBR to <tt>0x0600:0000</tt>
  */
+/**
+ * @def STACKSIZE
+ * @brief size of stack in bytes
+ */
+.doxygen-end
+.endif
+
+.set BIOSSEG, 0x07C0
 .set RELOCSEG, 0x0600
+.set STACKSIZE, 0x100
+
+.extern _BIN_START
+.extern _BIN_SIZE
 
 .section .text  # ---------------------------------------------------------
 
@@ -33,7 +47,7 @@
  *
  * - set segment registers: @c DS, @c ES, @c SS
  * - set up stack: @c SP
- * - far jump to <tt>0x7C00:initstartret</tt>, set up <tt>CS:IP</tt>
+ * - set up <tt>CS:IP</tt>, far jump to @c 0x7C00:@ref main
  */
 void start(void);
 .doxygen-end
@@ -43,11 +57,26 @@ void start(void);
 start:
         cli
         movw    $RELOCSEG, %ax
-        movw    %ax, %es
         movw    %ax, %ss
-        movw    $BIOSSEG, %ax
-        movw    %ax, %ds
-
-
+        movw    $stack + STACKSIZE, %sp
         sti
-        jmp     main
+
+        movw    %ax, %ds
+        movw    %ax, %es
+        movw    $(BIOSSEG - RELOCSEG) << 4, %si  # source
+        xorw    %di, %di                         # destination
+        movw    $_BIN_SIZE, %cx
+        cld
+rep     movsb
+        ljmp    $RELOCSEG, $main
+
+.section .bss  # ----------------------------------------------------------
+
+.if 0
+.doxygen-begin
+/**
+ * @brief stack, @ref STACKSIZE length in bytes
+ */
+.doxygen-end
+.endif
+.lcomm stack, STACKSIZE

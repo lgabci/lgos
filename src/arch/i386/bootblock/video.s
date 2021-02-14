@@ -1,8 +1,6 @@
 .arch i8086,nojumps
 .code16
 
-.include "video_inc.s"
-
 .if 0
 .doxygen-begin
 /**
@@ -20,7 +18,10 @@
  * @def INT_VIDEO
  * @brief BIOS video interrupt
  */
-
+/**
+ * @def VID_TTY_OUT
+ * @brief video teletype output
+ */
 /**
  * @def VID_GET_MODE
  * @brief get video mode and and active display page
@@ -29,6 +30,7 @@
 .endif
 
 .set INT_VIDEO,      0x10
+.set VID_TTY_OUT,    0x0e
 .set VID_GET_MODE,   0x0f
 
 .section .text  # ---------------------------------------------------------
@@ -36,13 +38,10 @@
 .if 0
 .doxygen-begin
 /**
- * @brief Initialize video
+ * @brief initialize video
  *
  * Output:
- * - @ref cols = number of display columns (40 or 80)
  * - @ref page = active video page
- * - @ref rows = 25
- * - @ref color = @ref COLOR_LGRAY
  *
  * Modified registers:
  * - AX, BH
@@ -55,9 +54,61 @@ void initvideo(void);
 initvideo:
         movb    $VID_GET_MODE, %ah
         int     $INT_VIDEO
-        movb    %ah, cols
         movb    %bh, page
         ret
+
+.if 0
+.doxygen-begin
+/**
+ * @brief print a character
+ *
+ * print a character to the display in teletype mode, moves the cursor and
+ * scrolls the screen if necessary
+ *
+ * BIOS bug: BH must be equal current active page
+ *
+ * @param[in] c AL = character to print
+ *
+ * Modified registers:
+ * - AH, BX, BP (BIOS bug), flags
+ */
+void printchr(uint8_t c);
+.doxygen-end
+.endif
+
+.globl printchr
+printchr:
+        movb    $VID_TTY_OUT, %ah
+        movb    page, %bh
+        int     $INT_VIDEO
+        ret
+
+.if 0
+.doxygen-begin
+/**
+ * @brief print string
+ *
+ * print a zero terminated string to the display in teletype mode, moves
+ * the cursor and scrolls the screen if necessary
+ *
+ * @param[in] c SI = pointer to zero terminated string
+ *
+ * Modified registers:
+ * - AX, BX, SI, BP (BIOS bug), flags
+ */
+void printstr(uint8_t *c);
+.doxygen-end
+.endif
+
+.globl printstr
+printstr:
+1:      cld
+        lodsb
+        testb   %al, %al
+        jz      2f
+        call    printchr
+        jmp     1b
+2:      ret
 
 .section .data  # ---------------------------------------------------------
 
@@ -68,28 +119,14 @@ initvideo:
  * @brief number of display rows@n
  * fixed value
  */
-/**
- * @var color
- * @brief dispay color@n
- * initial value = @ref COLOR_LGRAY@n
- * bit 7 = 0: don't blink, 1: blink@n
- * bit 4-6 = background color@n
- * bit 0-3 = foreground color
- */
 .doxygen-end
 .endif
-rows: .byte 25
-color: .byte 0x07
+rows:   .byte 25
 
 .section .bss  # ----------------------------------------------------------
 
 .if 0
 .doxygen-begin
-/**
- * @var cols
- * @brief number of display columns,
- * initialized by @ref initvideo
- */
 /**
  * @var page
  * @brief number of active display page,
@@ -98,5 +135,4 @@ color: .byte 0x07
 .doxygen-end
 .endif
 
-.lcomm cols, 1
 .lcomm page, 1

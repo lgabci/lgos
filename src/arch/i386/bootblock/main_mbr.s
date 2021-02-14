@@ -15,25 +15,23 @@
 .doxygen-end
 .endif
 
-.include "video_inc.s"
-
 .if 0
 .doxygen-begin
 /**
- * @file mbr.s
+ * @file main_mbr.s
  * @brief i386 bootblock, MBR
  *
  * Steps:
- * -# BIOS loads MBR to 0x0000:0x7C000
- * -# relocate MBR to 0x0600:0x0000
+ * -# BIOS loads MBR to <tt>0x0000:0x7C000</tt>
+ * -# relocate MBR to 0x0600:0x0000 (@ref start)
  * -# find active partition's boot sector
- * -# load boot sector to 0x0000:0x7C000 and start it
+ * -# load boot sector to <tt>0x0000:0x7C000</tt> and start it
  *
  * Initial environment by BIOS:
  * - CS:IP = 0x0000:0x7C00
  * - DL = BIOS drive number
  * - DH bit 5 = 0: device supported by INT13h, only some BIOSes
- * - ES:DI = PnP installation check structutre
+ * - ES:DI = PnP installation check structutre, only PnP BIOSes
  *
  * Environment to boot loader by MBR:
  * - CS:IP = 0x0000:0x7C00
@@ -86,7 +84,7 @@
 .if 0
 .doxygen-begin
 /**
- * @brief i386 main function
+ * @brief i386 MBR main function
  *
  * i386 main
  */
@@ -97,13 +95,23 @@ void main();
 .globl main
 main:
         call    initvideo
-## TODO -------------------------------------------------------------------
-        movw    $0xb800, %ax
-        movw    %ax, %ds
-        movb    $'c', %al
-        movb    $0x02, %ah
+
+        movw    $mbrstr, %si
+        call    printstr
 
 1:      cli
         hlt
         jmp     1b
-## TODO -------------------------------------------------------------------
+
+## ------------------------------------------------------------------------
+.section .data
+
+.if 0
+.doxygen-begin
+/**
+ * @brief i386 MBR welcome text
+ */
+.doxygen-end
+.endif
+
+mbrstr: .string "LGOS MBR\r\n"

@@ -1,8 +1,3 @@
-# comment for Doxygen, leave it
-/\/\*\*/,/\*\// {
-  b
-}
-
 # include file .include --> #include
 s/^[ \t]*\.include[ \t]\+/#include /
 t
@@ -16,11 +11,11 @@ t
 
 # variable, var: .byte 25 --> unsigned char var = 25;
 s/^ *\([^ ]\+\) *: *\.\(byte\|double\|float\|hword\|int\|long\|\octa\|\
-\|quad\|short\|single\|word\) \+\([x[:xdigit:]]\+\)/\2 \1 = \3;/
+\|quad\|short\|single\|word\|extern\) \+\([x[:xdigit:]]\+\)/\2 \1 = \3;/
 t
 
-# strig variable, var: .string "text" --> char[] var = "text";
-s/^ *\([^ ]\+\) *: *\.string \+\("[^\"]*"\)/char[] \1 = \2;/
+# string variable, var: .string "text" --> char[] var = "text";
+s/^ *\([^ ]\+\) *: *\.string \+\("[^"]*"\)/char[] \1 = \2;/
 t
 
 # BSS variables, .lcomm var, size --> byte var[size];
@@ -29,7 +24,7 @@ t
   b
 }
 
-# Parts for Doxygen, leave it
+# parts for Doxygen, leave it
 /^\.doxygen-begin$/,/^\.doxygen-end$/ {
   // s/.*//
   b

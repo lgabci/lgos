@@ -11,7 +11,10 @@ MEMORY {
 }
 
 SECTIONS {
+  _BIN_START = .;
+
   .text : ALIGN(1) {
+    */common.s.o(.text)
     *(.text)
   } >ram0
 
@@ -23,6 +26,8 @@ SECTIONS {
     BYTE(0x55)
     BYTE(0xaa)
   } >bsign
+
+  _BIN_SIZE = . - _BIN_START;
 
   .bss : {
     *(.bss)
