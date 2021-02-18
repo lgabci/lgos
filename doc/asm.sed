@@ -1,3 +1,9 @@
+# parts for Doxygen, leave it
+/^\.doxygen-begin$/,/^\.doxygen-end$/ {
+  // s/.*//
+  b
+}
+
 # include file .include --> #include
 s/^[ \t]*\.include[ \t]\+/#include /
 t
@@ -24,11 +30,11 @@ t
   b
 }
 
-# parts for Doxygen, leave it
-/^\.doxygen-begin$/,/^\.doxygen-end$/ {
-  // s/.*//
-  b
-}
+# function calls
+s/^\(.*:\)\? \+\(call\|jmp\) \+[[:digit:]][bf]$//
+t
+s/^\(.*:\)\? \+\(call\|jmp\) \+\([^ ]*\)/\3();/
+t
 
 # all other asm thing, empty row
 s/.*//

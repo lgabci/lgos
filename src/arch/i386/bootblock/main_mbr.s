@@ -41,6 +41,7 @@
  * - DS:SI = points to the 16-byte MBR partiton table entry of boot loader
  * - DS:BP = points to the 16-byte MBR partiton table entry of boot loader
  *
+ * @anchor MBR
  * Structure of a standard MBR:
  * | Address | Code | Size | Description                          |
  * | ------- | :--: | ---: | ------------------------------------ |
@@ -74,10 +75,26 @@
  * | 0x07   | 1      | CHS cylinder low 8 bits |
  * | 0x08   | 4      | LBA of first absolute sector in the partition |
  * | 0x0C   | 4      | Number of sectors in partition |
- *
+ */
+
+/**
+ * @def PTABLE_START
+ * @brief partition table's address in MBR, first @ref PartEntry
+ * "partition entry"
+ */
+/**
+ * @def PENTRY_SIZE
+ * @brief size of a partition @ref PartEntry "partition entry"
+ */
+/**
+ * @def PENTRY_CNT
+ * @brief number of @ref PartEntry "partition entries" in @ref MBR
  */
 .doxygen-end
 .endif
+.set PTABLE_START, 0x1be
+.set PENTRY_SIZE,  0x10
+.set PENTRY_CNT,   0x04
 
 .section .text  # ---------------------------------------------------------
 
@@ -88,7 +105,7 @@
  *
  * i386 main
  */
-void main();
+void main() {
 .doxygen-end
 .endif
 
@@ -99,9 +116,43 @@ main:
         movw    $mbrstr, %si
         call    printstr
 
+
+
+        # find active partition
+        xorw    %bp, %bp
+        movw    $PTABLE_START, %si
+        movw    $PENTRY_CNT, %cx
+
+1:      movb    (%si), %al
+        testb   $0x80, %al              # boot flag?
+        jz      2f
+        testw   %bp, %bp                # another one active partition?
+        jz      3f
+        movw    $invstr, %si
+        jmp     fatal
+3:      movw    %si, %bp                # BP -> active partition entry
+
+2:      addw    $PENTRY_SIZE, %si
+        loop    1b
+
+        testw   %bp, %bp                # another one active partition?
+        jnz     1f
+        movw    $nastr, %si
+        jmp     fatal
+1:
+
+
+
+
+
 1:      cli
         hlt
         jmp     1b
+.if 0
+.doxygen-begin
+}
+.doxygen-end
+.endif
 
 ## ------------------------------------------------------------------------
 .section .data
@@ -115,3 +166,23 @@ main:
 .endif
 
 mbrstr: .string "LGOS MBR\r\n"
+
+.if 0
+.doxygen-begin
+/**
+ * @brief invalid MBR message
+ */
+.doxygen-end
+.endif
+
+invstr: .string "Invalid MBR"
+
+.if 0
+.doxygen-begin
+/**
+ * @brief no active partition message
+ */
+.doxygen-end
+.endif
+
+nastr:  .string "No active partition found"

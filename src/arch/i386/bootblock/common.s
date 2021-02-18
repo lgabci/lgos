@@ -70,6 +70,31 @@ start:
 rep     movsb
         ljmp    $RELOCSEG, $main
 
+.if 0
+.doxygen-begin
+/**
+ * @brief print error message and halt
+ *
+ * @param c pointer to zero terminated string to print
+ *
+ * Modified registers:
+ * - AX, BX, SI, BP (BIOS bug), flags
+ */
+void fatal(char *c) {
+.doxygen-end
+.endif
+
+.globl fatal
+fatal:  call    printstr
+1:      cli
+        hlt
+        jmp     1b
+.if 0
+.doxygen-begin
+}
+.doxygen-end
+.endif
+
 .section .bss  # ----------------------------------------------------------
 
 .if 0

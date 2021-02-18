@@ -17,5 +17,14 @@ fi
 dd if="$MBRFILE" of="$IMGFILE" status=none
 dd if=/dev/zero of="$IMGFILE" bs="$IMGSIZE" seek=1 count=0 status=none
 
-qemu-system-i386 -machine pc -cpu 486 -boot order=c -m 2 \
-  -drive file="$IMGFILE",if=virtio,bus=0,unit=0,media=disk,format=raw
+PAR="-machine pc -cpu 486"
+PAR="$PAR -m 2"
+PAR="$PAR -drive file=$IMGFILE,if=virtio,bus=0,unit=0,media=disk,format=raw"
+PAR="$PAR -boot order=c"
+PAR="$PAR -net none"
+PAR="$PAR -serial none -parallel none"
+if [ -z "${DISPLAY:-}" ]; then
+  PAR="$PAR -curses"
+fi
+
+qemu-system-i386 $PAR

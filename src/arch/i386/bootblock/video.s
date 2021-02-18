@@ -96,7 +96,7 @@ printchr:
  * Modified registers:
  * - AX, BX, SI, BP (BIOS bug), flags
  */
-void printstr(uint8_t *c);
+void printstr(uint8_t *c) {
 .doxygen-end
 .endif
 
@@ -109,6 +109,11 @@ printstr:
         call    printchr
         jmp     1b
 2:      ret
+.if 0
+.doxygen-begin
+}
+.doxygen-end
+.endif
 
 .section .data  # ---------------------------------------------------------
 
