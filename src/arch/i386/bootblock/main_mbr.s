@@ -1,4 +1,4 @@
-.arch i8086,jumps
+.arch i8086,nojumps
 .code16
 
 .if 0
@@ -65,16 +65,16 @@
  * Structure of a partition entry
  * | Offset | Length | Description |
  * | ------ | -----: | ----------- |
- * | 0x00   | 1      | bit 7: boot flag, 1 = bootable |
- * | 0x01   | 1      | CHS head address of 1st absolute sector of partition |
+ * | 0x00   | 1      | bit 7: boot flag, 1 = bootable                        |
+ * | 0x01   | 1      | CHS head address of 1st absolute sector of partition  |
  * | 0x02   | 1      | bit 6-7: cylinder high bits@n bit 0-5: sector address |
- * | 0x03   | 1      | CHS cylinder low 8 bits |
- * | 0x04   | 1      | Partition type |
+ * | 0x03   | 1      | CHS cylinder low 8 bits                               |
+ * | 0x04   | 1      | Partition type                                        |
  * | 0x05   | 1      | CHS head address of last absolute sector of partition |
  * | 0x06   | 1      | bit 6-7: cylinder high bits@n bit 0-5: sector address |
- * | 0x07   | 1      | CHS cylinder low 8 bits |
- * | 0x08   | 4      | LBA of first absolute sector in the partition |
- * | 0x0C   | 4      | Number of sectors in partition |
+ * | 0x07   | 1      | CHS cylinder low 8 bits                               |
+ * | 0x08   | 4      | LBA of the first absolute sector in the partition     |
+ * | 0x0C   | 4      | Number of sectors in partition                        |
  */
 
 /**
@@ -90,11 +90,18 @@
  * @def PENTRY_CNT
  * @brief number of @ref PartEntry "partition entries" in @ref MBR
  */
+/**
+ * @def PENTRY_LBA
+ * @brief address of LBA starting sector of @ref PartEntry
+ * "partition entries" in @ref MBR
+ */
 .doxygen-end
 .endif
 .set PTABLE_START, 0x1be
 .set PENTRY_SIZE,  0x10
 .set PENTRY_CNT,   0x04
+
+.set PENTRY_LBA,   0x08
 
 .section .text  # ---------------------------------------------------------
 
@@ -119,28 +126,30 @@ main:
 
 
         # find active partition
-        xorw    %bp, %bp
         movw    $PTABLE_START, %si
         movw    $PENTRY_CNT, %cx
+        xorw    %bx, %bx
 
 1:      movb    (%si), %al
         testb   $0x80, %al              # boot flag?
-        jz      2f
-        testw   %bp, %bp                # another one active partition?
         jz      3f
-        movw    $invstr, %si
+        testw   %bx, %bx                # another one active partition?
+        jz      2f
+        movw    $invstr, %si            # invalid partition table
         jmp     fatal
-3:      movw    %si, %bp                # BP -> active partition entry
+2:      movw    %si, %bx                # BX -> active partition entry
 
-2:      addw    $PENTRY_SIZE, %si
+3:      addw    $PENTRY_SIZE, %si
         loop    1b
 
-        testw   %bp, %bp                # another one active partition?
-        jnz     1f
+        testw   %bx, %bx                # no active partition found?
+        jnz     4f
         movw    $nastr, %si
         jmp     fatal
-1:
 
+
+4:      movw    PENTRY_LBA(%bx), %ax
+        movw    PENTRY_LBA + 2(%bx), %dx
 
 
 
@@ -154,8 +163,7 @@ main:
 .doxygen-end
 .endif
 
-## ------------------------------------------------------------------------
-.section .data
+.section .data  # ---------------------------------------------------------
 
 .if 0
 .doxygen-begin

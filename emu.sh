@@ -1,22 +1,32 @@
 #!/bin/sh
 set -eu
 
-./build.sh
-
+RUNDIR=$(dirname "$0")
 BUILDDIR=/tmp/lgos
 IMGFILE="$BUILDDIR/emu/lgos.img"
 IMGSIZE=100M
 
-MBRFILE="$BUILDDIR/arch/i386/bootblock/main_mbr.bin"
+MBRFILE="$BUILDDIR/arch/i386/bootblock/main_mbr.elf"
+
+ARCH=i386-elf
+READELF="$ARCH-readelf"
+
+"$RUNDIR/build.sh"
 
 # create image file
 imgdir="$(dirname "$IMGFILE")"
 if [ ! -e "$imgdir" ]; then
   mkdir -p "$imgdir"
 fi
-dd if="$MBRFILE" of="$IMGFILE" status=none
+dd if="$RUNDIR/emu/mbr.bin" of="$IMGFILE" status=none
+#dd if="$MBRFILE" of="$IMGFILE" status=none
+"$READELF" -l "$MBRFILE" | \
+  awk -v imgfile="$IMGFILE" -v mbrfile="$MBRFILE" -f "$RUNDIR/emu/mbr.awk" | \
+  sh
+
 dd if=/dev/zero of="$IMGFILE" bs="$IMGSIZE" seek=1 count=0 status=none
 
+# start Qemu
 PAR="-machine pc -cpu 486"
 PAR="$PAR -m 2"
 PAR="$PAR -drive file=$IMGFILE,if=virtio,bus=0,unit=0,media=disk,format=raw"
@@ -25,6 +35,9 @@ PAR="$PAR -net none"
 PAR="$PAR -serial none -parallel none"
 if [ -z "${DISPLAY:-}" ]; then
   PAR="$PAR -curses"
+  if [ "${TERM:-dumb}" = dumb ]; then
+    PAR="$PAR -monitor stdio"
+  fi
 fi
 
 qemu-system-i386 $PAR
