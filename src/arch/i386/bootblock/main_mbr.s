@@ -1,8 +1,6 @@
 .arch i8086,nojumps
 .code16
 
-.if 0
-.doxygenr-begin
 /**
  * @dir bootblock
  * @brief i386 bootblock
@@ -12,11 +10,7 @@
  * - FAT boot sector
  * - Ext2 boot sector
  */
-.doxygen-end
-.endif
 
-.if 0
-.doxygen-begin
 /**
  * @file main_mbr.s
  * @brief i386 bootblock, MBR
@@ -95,8 +89,6 @@
  * @brief address of LBA starting sector of @ref PartEntry
  * "partition entries" in @ref MBR
  */
-.doxygen-end
-.endif
 .set PTABLE_START, 0x1be
 .set PENTRY_SIZE,  0x10
 .set PENTRY_CNT,   0x04
@@ -105,16 +97,13 @@
 
 .section .text  # ---------------------------------------------------------
 
-.if 0
-.doxygen-begin
 /**
  * @brief i386 MBR main function
  *
  * i386 main
+ *
+ * void main() {
  */
-void main() {
-.doxygen-end
-.endif
 
 .globl main
 main:
@@ -157,40 +146,15 @@ main:
 1:      cli
         hlt
         jmp     1b
-.if 0
-.doxygen-begin
-}
-.doxygen-end
-.endif
+/** } */
 
 .section .data  # ---------------------------------------------------------
 
-.if 0
-.doxygen-begin
-/**
- * @brief i386 MBR welcome text
- */
-.doxygen-end
-.endif
-
+/** @brief i386 MBR welcome text */
 mbrstr: .string "LGOS MBR\r\n"
 
-.if 0
-.doxygen-begin
-/**
- * @brief invalid MBR message
- */
-.doxygen-end
-.endif
-
+/** @brief invalid MBR message */
 invstr: .string "Invalid MBR"
 
-.if 0
-.doxygen-begin
-/**
- * @brief no active partition message
- */
-.doxygen-end
-.endif
-
+/** @brief no active partition message */
 nastr:  .string "No active partition found"

@@ -1,17 +1,24 @@
-# parts for Doxygen, leave it
-/^\.doxygen-begin$/,/^\.doxygen-end$/ {
-  // s/.*//
-  b
+# comments for doxygen, leave it
+s/\/\*\* } \*\//}/
+t
+
+/\/\*\*.*\*\// {
+b
+}
+
+/^\/\*\*/,/\*\// {
+s/ \* \(.*{\)/*\/ \1 \/*/
+b
 }
 
 # include file .include --> #include
-s/^[ \t]*\.include[ \t]\+/#include /
+s/^\.include \+/#include /
 t
 
 # symbol, .set --> #define
-/^[ \t]*\.set[ \t]\+/ {
-  s/[ \t]*\.set[ \t]\+/#define /
-  s/,[ \t]*/ /
+/^\.set \+/ {
+  s/\.set \+/#define /
+  s/, */ /
   b
 }
 
@@ -25,10 +32,9 @@ s/^ *\([^ ]\+\) *: *\.string \+\("[^"]*"\)/char[] \1 = \2;/
 t
 
 # BSS variables, .lcomm var, size --> byte var[size];
-/^[ \t]*\.lcomm[ \t]\+/ {
-  s/[ \t]*\.lcomm[ \t]\+\([^ \t,]\+\),[ \t]*\([[:digit:]]\+\)$/byte \1[\2];/
-  b
-}
+s/\.lcomm \+\([^ ,]\+\), *\([[:digit:]]\+\)$/byte \1[\2];/
+t
+
 
 # function calls
 s/^\(.*:\)\? \+\(call\|jmp\) \+[[:digit:]][bf]$//
@@ -36,5 +42,5 @@ t
 s/^\(.*:\)\? \+\(call\|jmp\) \+\([^ ]*\)/\3();/
 t
 
-# all other asm thing, empty row
+# all other asm things, empty row
 s/.*//

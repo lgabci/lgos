@@ -1,19 +1,13 @@
 .arch i8086,nojumps
 .code16
 
-.if 0
-.doxygen-begin
 /**
  * @file video.s
  * @brief i386 video functions
  *
  * INT10h video BIOS functions
  */
-.doxygen-end
-.endif
 
-.if 0
-.doxygen-begin
 /**
  * @def INT_VIDEO
  * @brief BIOS video interrupt
@@ -26,8 +20,6 @@
  * @def VID_GET_MODE
  * @brief get video mode and and active display page
  */
-.doxygen-end
-.endif
 
 .set INT_VIDEO,      0x10
 .set VID_TTY_OUT,    0x0e
@@ -35,8 +27,6 @@
 
 .section .text  # ---------------------------------------------------------
 
-.if 0
-.doxygen-begin
 /**
  * @brief initialize video
  *
@@ -45,10 +35,9 @@
  *
  * Modified registers:
  * - AX, BH
+ *
+ * void initvideo(void) {
  */
-void initvideo(void);
-.doxygen-end
-.endif
 
 .globl initvideo
 initvideo:
@@ -57,8 +46,8 @@ initvideo:
         movb    %bh, page
         ret
 
-.if 0
-.doxygen-begin
+/** } */
+
 /**
  * @brief print a character
  *
@@ -71,10 +60,9 @@ initvideo:
  *
  * Modified registers:
  * - AH, BX, BP (BIOS bug), flags
+ *
+ * void printchr(uint8_t c) {
  */
-void printchr(uint8_t c);
-.doxygen-end
-.endif
 
 .globl printchr
 printchr:
@@ -83,8 +71,8 @@ printchr:
         int     $INT_VIDEO
         ret
 
-.if 0
-.doxygen-begin
+/** } */
+
 /**
  * @brief print string
  *
@@ -95,10 +83,9 @@ printchr:
  *
  * Modified registers:
  * - AX, BX, SI, BP (BIOS bug), flags
+ *
+ * void printstr(uint8_t *c) {
  */
-void printstr(uint8_t *c) {
-.doxygen-end
-.endif
 
 .globl printstr
 printstr:
@@ -109,35 +96,23 @@ printstr:
         call    printchr
         jmp     1b
 2:      ret
-.if 0
-.doxygen-begin
-}
-.doxygen-end
-.endif
+
+/** } */
 
 .section .data  # ---------------------------------------------------------
 
-.if 0
-.doxygen-begin
 /**
  * @var rows
  * @brief number of display rows@n
  * fixed value
  */
-.doxygen-end
-.endif
 rows:   .byte 25
 
 .section .bss  # ----------------------------------------------------------
 
-.if 0
-.doxygen-begin
 /**
  * @var page
  * @brief number of active display page,
  * initialized by @ref initvideo
  */
-.doxygen-end
-.endif
-
 .lcomm page, 1

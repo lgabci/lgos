@@ -1,52 +1,32 @@
 .arch i8086,nojumps
 .code16
 
-.if 0
-.doxygen-begin
 /**
  * @file disk.s
  * @brief i386 bootblock, disk I/O
  *
  * Steps:
 */
-.doxygen-end
-.endif
 
-.if 0
-.doxygen-begin
-/**
- * @def INT_DISK
- * @brief BIOS disk interrupt
- */
-/**
- * @def DISK_RESET
- * @brief reset disks
- */
-/**
- * @def DISK_READ
- * @brief read sectors
- */
-.doxygen-end
-.endif
-
+/** @brief BIOS disk interrupt */
 .set INT_DISK ,      0x13
+
+/** @brief reset disks */
 .set DISK_RESET,     0x00
+
+/** @brief read sectors */
 .set DISK_READ,      0x02
+
 
 .section .text  # ---------------------------------------------------------
 
-.if 0
-.doxygen-begin
 /**
  * @brief reset disks
  *
  * @param disk @c DL = BIOS drive number
+ *
+ * static void diskreset(uint8_t disk) {
  */
-void diskreset(uint8_t disk) {
-.doxygen-end
-.endif
-
-.globl diskreset
 diskreset:
         movb    $DISK_RESET, %ah
         jc      1f
@@ -54,22 +34,15 @@ diskreset:
         jmp     fatal
 1:      ret
 
-.if 0
-.doxygen-begin
-}
-.doxygen-end
-.endif
+/** } */
 
-.if 0
-.doxygen-begin
 /**
  * @brief read sector
  *
  * @param lba @c DX:AX = LBA sector number
+ *
+ * void diskread(uint32_t lba) {
  */
-void diskread(uint32_t lba) {
-.doxygen-end
-.endif
 
 .globl diskread
 diskread:
@@ -81,12 +54,5 @@ diskread:
 
 .section .data  # ---------------------------------------------------------
 
-.if 0
-.doxygen-begin
-/**
- * @brief I/O error text
- */
-.doxygen-end
-.endif
-
+/** @brief I/O error text */
 iostr:  .string "I/O error\r\n"

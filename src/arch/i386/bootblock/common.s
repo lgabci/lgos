@@ -1,19 +1,13 @@
 .arch i8086,nojumps
 .code16
 
-.if 0
-.doxygen-begin
 /**
  * @file common.s
  * @brief common functions
  *
  * boot bootblock functions, program execution starts here on @ref start
  */
-.doxygen-end
-.endif
 
-.if 0
-.doxygen-begin
 /**
  * @def BIOSSEG
  * @brief BIOS loads MBR to <tt>0x0000:0x7C00</tt>
@@ -26,8 +20,6 @@
  * @def STACKSIZE
  * @brief size of stack in bytes
  */
-.doxygen-end
-.endif
 
 .set BIOSSEG, 0x07C0
 .set RELOCSEG, 0x0600
@@ -38,8 +30,6 @@
 
 .section .text  # ---------------------------------------------------------
 
-.if 0
-.doxygen-begin
 /**
  * @brief code starts to run here
  *
@@ -48,10 +38,9 @@
  * - set segment registers: @c DS, @c ES, @c SS
  * - set up stack: @c SP
  * - set up <tt>CS:IP</tt>, far jump to @c 0x7C00:@ref main
+ *
+ * void start(void) {
  */
-void start(void);
-.doxygen-end
-.endif
 
 .globl start
 start:
@@ -70,8 +59,8 @@ start:
 rep     movsb
         ljmp    $RELOCSEG, $main
 
-.if 0
-.doxygen-begin
+/** } */
+
 /**
  * @brief print error message and halt
  *
@@ -79,29 +68,19 @@ rep     movsb
  *
  * Modified registers:
  * - AX, BX, SI, BP (BIOS bug), flags
+ *
+ * void fatal(char *c) {
  */
-void fatal(char *c) {
-.doxygen-end
-.endif
 
 .globl fatal
 fatal:  call    printstr
 1:      cli
         hlt
         jmp     1b
-.if 0
-.doxygen-begin
-}
-.doxygen-end
-.endif
+
+/** } */
 
 .section .bss  # ----------------------------------------------------------
 
-.if 0
-.doxygen-begin
-/**
- * @brief stack, @ref STACKSIZE length in bytes
- */
-.doxygen-end
-.endif
+/** @brief stack, @ref STACKSIZE length in bytes */
 .lcomm stack, STACKSIZE
