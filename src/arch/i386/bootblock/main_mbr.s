@@ -102,7 +102,7 @@
  *
  * i386 main
  *
- * void main() {
+ # void main() {
  */
 
 .globl main
