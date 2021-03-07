@@ -8,22 +8,9 @@
  * boot bootblock functions, program execution starts here on @ref start
  */
 
-/**
- * @def BIOSSEG
- * @brief BIOS loads MBR to <tt>0x0000:0x7C00</tt>
- */
-/**
- * @def RELOCSEG
- * @brief relocate  MBR to <tt>0x0600:0000</tt>
- */
-/**
- * @def STACKSIZE
- * @brief size of stack in bytes
- */
-
-.set BIOSSEG, 0x07C0
-.set RELOCSEG, 0x0600
-.set STACKSIZE, 0x100
+.set BIOSSEG, 0x07C0   /**< @brief BIOS loads MBR to <tt>0x0000:0x7C00</tt> */
+.set RELOCSEG, 0x0600  /**< @brief relocate  MBR to <tt>0x0600:0000</tt> */
+.set STACKSIZE, 0x100  /**< @brief size of stack in bytes */
 
 .extern _BIN_START
 .extern _BIN_SIZE
@@ -33,13 +20,13 @@
 /**
  * @brief code starts to run here
  *
- * it will jump  to @c main
+ * it will jump to @ref main
  *
  * - set segment registers: @c DS, @c ES, @c SS
  * - set up stack: @c SP
  * - set up <tt>CS:IP</tt>, far jump to @c 0x7C00:@ref main
  *
- * void start(void) {
+ # void start(void) {
  */
 
 .globl start
@@ -59,17 +46,15 @@ start:
 rep     movsb
         ljmp    $RELOCSEG, $main
 
-/** } */
-
 /**
  * @brief print error message and halt
  *
- * @param c pointer to zero terminated string to print
+ * @param[in] SI pointer to zero terminated string to print
  *
  * Modified registers:
  * - AX, BX, SI, BP (BIOS bug), flags
  *
- * void fatal(char *c) {
+ # void fatal(char *SI) {
  */
 
 .globl fatal
@@ -82,5 +67,4 @@ fatal:  call    printstr
 
 .section .bss  # ----------------------------------------------------------
 
-/** @brief stack, @ref STACKSIZE length in bytes */
-.lcomm stack, STACKSIZE
+.lcomm stack, STACKSIZE  /**< @brief stack, @ref STACKSIZE length in bytes */

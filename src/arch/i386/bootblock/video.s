@@ -8,22 +8,11 @@
  * INT10h video BIOS functions
  */
 
-/**
- * @def INT_VIDEO
- * @brief BIOS video interrupt
- */
-/**
- * @def VID_TTY_OUT
- * @brief video teletype output
- */
-/**
- * @def VID_GET_MODE
- * @brief get video mode and and active display page
- */
+.set INT_VIDEO,      0x10 /**< @brief BIOS video interrupt */
 
-.set INT_VIDEO,      0x10
-.set VID_TTY_OUT,    0x0e
-.set VID_GET_MODE,   0x0f
+.set VID_TTY_OUT,    0x0e  /**< @brief video teletype output */
+.set VID_GET_MODE,   0x0f  /**< @brief get video mode and and active page */
+
 
 .section .text  # ---------------------------------------------------------
 
@@ -36,7 +25,7 @@
  * Modified registers:
  * - AX, BH
  *
- * void initvideo(void) {
+ # void initvideo(void) {
  */
 
 .globl initvideo
@@ -46,22 +35,20 @@ initvideo:
         movb    %bh, page
         ret
 
-/** } */
-
 /**
  * @brief print a character
  *
  * print a character to the display in teletype mode, moves the cursor and
  * scrolls the screen if necessary
  *
- * BIOS bug: BH must be equal current active page
+ * @param[in] AL character to print
  *
- * @param[in] c AL = character to print
+ * BIOS bug: BH must be equal current active page
  *
  * Modified registers:
  * - AH, BX, BP (BIOS bug), flags
  *
- * void printchr(uint8_t c) {
+ # void printchr(uint8_t AL) {
  */
 
 .globl printchr
@@ -71,20 +58,18 @@ printchr:
         int     $INT_VIDEO
         ret
 
-/** } */
-
 /**
  * @brief print string
  *
  * print a zero terminated string to the display in teletype mode, moves
  * the cursor and scrolls the screen if necessary
  *
- * @param[in] c SI = pointer to zero terminated string
+ * @param[in] SI pointer to zero terminated string
  *
  * Modified registers:
  * - AX, BX, SI, BP (BIOS bug), flags
  *
- * void printstr(uint8_t *c) {
+ # void printstr(uint8_t *SI) {
  */
 
 .globl printstr
@@ -97,22 +82,10 @@ printstr:
         jmp     1b
 2:      ret
 
-/** } */
-
 .section .data  # ---------------------------------------------------------
 
-/**
- * @var rows
- * @brief number of display rows@n
- * fixed value
- */
-rows:   .byte 25
+rows:   .byte 25   /**< @brief number of display rows@n */
 
 .section .bss  # ----------------------------------------------------------
 
-/**
- * @var page
- * @brief number of active display page,
- * initialized by @ref initvideo
- */
-.lcomm page, 1
+.lcomm page, 1  /**< @brief number of active display page, */
