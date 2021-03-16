@@ -3,22 +3,48 @@ BEGIN {
 }
 
 {
-  if ($0 ~ /\/\*\*([^<]|$)/) {         # start of doxygen's comment
-    in_comment = 1
+  print
+  for (i = 1; i <= NF; i ++) {
+
+    if ($i ~ /^\/\*\*/) {      # start of doxygen's comment
+      in_comment = 1
+    }
+
+    if (! in_comment) {        # not in a doxygen comment
+      if (i == 1) {
+        if ($i == ".include") { # .include "file" --> #include "file"
+          $i = "#include"
+          break
+        }
+        else if ($i == ".set") { # .set name, valud --> #define nam value
+          $i = "#define"
+          sub(",", " ", $i+1)
+          break
+        }
+      }
+    }
+    else {                     # in a Doxygen comment
+      if ($i ~ /\*\/$/) {      # end of comment
+        in_comment = 0
+      }
+      else if ($i == "#") {    # function declaration
+        $i = "*/ "
+        $0 = $0 " /*"
+        break
+      }
+      else if ($i == "/**" && $i+1 == "}" && $i+2 == "*/") {
+        $0 = "}"
+        break
+      }
+    }
   }
+
 
   if (! in_comment) {          # out of a doxygen comment
     mpos = $1 ~ ":$" ? 2 : 1   # label
 
-    if ($1 == ".include") {    # .include "file" --> #include "file"
-      $1 = "#include"
-    }
-    else if ($1 == ".set") {   # .set name, value --> #define name value
-      $1 = "#define"
-      sub(",", " ")
-    }
                                # var: .byte val --> byte var = val;
-    else if ($1 ~ ":$" && $2 == ".byte"  || $2 == ".double"  ||
+     if ($1 ~ ":$" && $2 == ".byte"  || $2 == ".double"  ||
              $2 == ".float"  || $2 == ".hword"  || $2 == ".int"  ||
              $2 == ".long"  || $2 == ".octa"  || $2 == ".quad"  ||
              $2 == ".short"  || $2 == ".single"  || $2 == ".word"  ||
@@ -52,22 +78,9 @@ BEGIN {
       $0 = ""
     }
   }
-  else {                       # in a doxygen comment
-    if ($1 == "#") {           # function declaration
-      $1 = ""
-      $0 = "*/ " $0 " /*"
-    }
-    else if ($1 == "/**" && $2 == "}" && $3 == "*/") {
-      $0 = "}"
-    }
-    else if ($0 ~ /\*\//) {         # end of comment
-      in_comment = 0
-    }
-  }
 
-  if ($0 ~ /\/\*\*</ && $0 !~ /\*\//) {
-    in_comment = 1
-  }
 
   print $0
 }
+
+
