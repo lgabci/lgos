@@ -41,14 +41,13 @@ initvideo:
  * print a character to the display in teletype mode, moves the cursor and
  * scrolls the screen if necessary
  *
- * @param[in] AL character to print
- *
  * BIOS bug: BH must be equal current active page
  *
  * Modified registers:
  * - AH, BX, BP (BIOS bug), flags
  *
- # void printchr(uint8_t AL) {
+ # void printchr(uint8_t AL /**< [in] character to print */
+ #      ) {
  */
 
 .globl printchr
@@ -64,12 +63,11 @@ printchr:
  * print a zero terminated string to the display in teletype mode, moves
  * the cursor and scrolls the screen if necessary
  *
- * @param[in] SI pointer to zero terminated string
- *
  * Modified registers:
  * - AX, BX, SI, BP (BIOS bug), flags
  *
- # void printstr(uint8_t *SI) {
+ # void printstr(uint8_t *SI /**< [in] pointer to string */
+ #      ) {
  */
 
 .globl printstr

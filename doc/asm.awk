@@ -7,30 +7,36 @@ BEGIN {
   if ($1 ~ ":$") {
     label = $1
     sub(/:/, "", label)
+    $1 = ""
   }
 
   for (i = 1; i <= NF; i ++) {
 
     if ($i ~ /^\/\*\*/) {               # start of doxygen's comment
       in_comment = 1
+      continue
     }
 
     if (! in_comment) {                 # not in a doxygen comment
       if (i == 1) {
         if ($i == ".include") {         # .include "file" --> #include "file"
           $i = "#include"
+          i ++
+          continue
         }
-        else if ($i == ".set") {        # .set name, val --> #define nam val
+        if ($i == ".set") {             # .set name, val --> #define nam val
           $i = "#define"
           sub(/,/, " ", $(i+1))
           i ++
           continue
         }
-        else if ($1 == ".lcomm") {      # .lcomm var, len --> byte var[len]
-          $1 = "byte"
-          sub(/,/, "", $2)
-          $2 = $2 "[" $3 "]"
-          $3 = ""
+        if ($i == ".lcomm") {           # .lcomm var, len --> byte var[len]
+          $i = "byte"
+          sub(/,/, "", $(i+1))
+          $(i+1) = $(i+1) "[" $(i+2) "];"
+          $(i+2) = ""
+          i = i + 2
+          continue
         }
       }
       else if (i == 2 && label) {
@@ -46,45 +52,61 @@ BEGIN {
           i ++
           continue
         }
-                                        # var: .string "text" --> char[] var = "text";
-        else if ($i == ".string" && $(i+1) ~ "^\"") {
-          $1 = "char[]"
-          $2 = label
-          $0 = gensub(/"/, "\";", 2)
+                             # var: .string "text" --> char[] var = "text";
+        if ($i == ".string" && $(i+1) ~ "^\"") {
+          $(i-1) = "char[]"
+          $i = label " = "
+          i ++
+          while (i <= NF && $i !~ "\"$") {
+            i ++
+          }
+          $i = $i ";"
+          continue
         }
-
       }
 
       if ($i == "call" || $i == "lcall") {
         $i = ""
         $(i+1) = $(i+1) "();"
+        i ++
+        continue
       }
-      if ($i == "ret" || $i == "lret" || $i == "ljmp") {
+      if ($i == "ret" || $i == "lret") {
         $i = "}"
+        continue
       }
-##      else {
-##        $0 = ""
-##      }
+      if ($i == "ljmp") {
+        $i = "}"
+        $(i+1) = ""
+        $(i+2) = ""
+        i = i + 2
+        continue
+      }
 
+      $i = ""
     }
     else {                              # in a Doxygen comment
       if ($i ~ /\*\/$/) {               # end of comment
         in_comment = 0
+        continue
       }
-      else if ($1 == "#") {             # function declaration
-        $1 = "*/ "
-        $0 = $0 " /*"
-        break
-      }
-      else if ($i == "/**" && $(i+1) == "}" && $(i+2) == "*/") {
-        $i = "}"
+      if ($(i-1) == "/**" && $i == "}" && $(i+1) == "*/") {
+        $(i-1) = "}"
+        $(i) = ""
         $(i+1) = ""
-        $(i+2) = ""
+        i ++
+        in_comment = 0
+        continue
+      }
+      if (i == 1) {
+        if ($i == "#") {             # function declaration
+          $i = "*/"
+          $(NF+1) = "/*"
+          break
+        }
       }
     }
   }
 
   print $0
 }
-
-

@@ -49,12 +49,11 @@ rep     movsb
 /**
  * @brief print error message and halt
  *
- * @param[in] SI pointer to zero terminated string to print
- *
  * Modified registers:
  * - AX, BX, SI, BP (BIOS bug), flags
  *
- # void fatal(char *SI) {
+ # void fatal(char *SI   /**< [in]  pointer to  string to print */
+ #      ) {
  */
 
 .globl fatal

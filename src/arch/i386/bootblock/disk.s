@@ -8,14 +8,9 @@
  * Steps:
 */
 
-/** @brief BIOS disk interrupt */
-.set INT_DISK ,      0x13
-
-/** @brief reset disks */
-.set DISK_RESET,     0x00
-
-/** @brief read sectors */
-.set DISK_READ,      0x02
+.set INT_DISK,       0x13        /**< @brief BIOS disk interrupt */
+.set DISK_RESET,     0x00        /**< @brief reset disks */
+.set DISK_READ,      0x02        /**< @brief read sectors */
 
 
 .section .text  # ---------------------------------------------------------
@@ -23,9 +18,8 @@
 /**
  * @brief reset disks
  *
- * @param disk @c DL = BIOS drive number
- *
- * static void diskreset(uint8_t disk) {
+ # static void diskreset(uint8_t DL  /**< [in] BIOS drive number */
+ #      ) {
  */
 diskreset:
         movb    $DISK_RESET, %ah
@@ -34,14 +28,11 @@ diskreset:
         jmp     fatal
 1:      ret
 
-/** } */
-
 /**
  * @brief read sector
  *
- * @param lba @c DX:AX = LBA sector number
- *
- * void diskread(uint32_t lba) {
+ # void diskread(uint32_t DX_AX   /**< [in] LBA sector number */
+ #      ) {
  */
 
 .globl diskread
@@ -54,5 +45,4 @@ diskread:
 
 .section .data  # ---------------------------------------------------------
 
-/** @brief I/O error text */
-iostr:  .string "I/O error\r\n"
+iostr:  .string "I/O error\r\n"       /**< @brief I/O error text */

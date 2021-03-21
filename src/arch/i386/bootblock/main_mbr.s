@@ -71,28 +71,18 @@
  * | 0x0C   | 4      | Number of sectors in partition                        |
  */
 
-/**
- * @def PTABLE_START
- * @brief partition table's address in MBR, first @ref PartEntry
- * "partition entry"
- */
-/**
- * @def PENTRY_SIZE
- * @brief size of a partition @ref PartEntry "partition entry"
- */
-/**
- * @def PENTRY_CNT
- * @brief number of @ref PartEntry "partition entries" in @ref MBR
- */
-/**
- * @def PENTRY_LBA
- * @brief address of LBA starting sector of @ref PartEntry
- * "partition entries" in @ref MBR
- */
+/** @brief partition table's address in MBR, first @ref PartEntry
+ *         "partition entry" */
 .set PTABLE_START, 0x1be
+
+/** @brief size of a partition @ref PartEntry "partition entry" */
 .set PENTRY_SIZE,  0x10
+
+/** @brief number of @ref PartEntry "partition entries" in @ref MBR */
 .set PENTRY_CNT,   0x04
 
+/** @brief address of LBA starting sector of @ref PartEntry
+ *         "partition entries" in @ref MBR */
 .set PENTRY_LBA,   0x08
 
 .section .text  # ---------------------------------------------------------
@@ -102,9 +92,8 @@
  *
  * i386 main
  *
- # void main() {
+ # void main(void) {
  */
-
 .globl main
 main:
         call    initvideo
@@ -150,11 +139,6 @@ main:
 
 .section .data  # ---------------------------------------------------------
 
-/** @brief i386 MBR welcome text */
-mbrstr: .string "LGOS MBR\r\n"
-
-/** @brief invalid MBR message */
-invstr: .string "Invalid MBR"
-
-/** @brief no active partition message */
-nastr:  .string "No active partition found"
+mbrstr: .string "LGOS MBR\r\n"    /**< @brief i386 MBR welcome text */
+invstr: .string "Invalid MBR"     /**< @brief invalid MBR message */
+nastr:  .string "No active partition found"  /**< @brief error message */
