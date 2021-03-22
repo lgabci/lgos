@@ -101,6 +101,13 @@ BEGIN {
       if (i == 1) {
         if ($i == "#") {             # function declaration
           $i = "*/"
+          while (++ i <= NF) {
+            if ($i == "--") {
+              $i = "/**<"
+              $(NF+1) = "*/"
+              break
+            }
+          }
           $(NF+1) = "/*"
           break
         }

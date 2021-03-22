@@ -52,7 +52,7 @@ rep     movsb
  * Modified registers:
  * - AX, BX, SI, BP (BIOS bug), flags
  *
- # void fatal(char *SI   /**< [in]  pointer to  string to print */
+ # void fatal(char *SI -- [in]  pointer to  string to print
  #      ) {
  */
 

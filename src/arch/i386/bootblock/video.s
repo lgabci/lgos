@@ -46,7 +46,7 @@ initvideo:
  * Modified registers:
  * - AH, BX, BP (BIOS bug), flags
  *
- # void printchr(uint8_t AL /**< [in] character to print */
+ # void printchr(uint8_t AL -- [in] character to print
  #      ) {
  */
 
@@ -66,7 +66,7 @@ printchr:
  * Modified registers:
  * - AX, BX, SI, BP (BIOS bug), flags
  *
- # void printstr(uint8_t *SI /**< [in] pointer to string */
+ # void printstr(uint8_t *SI -- [in] pointer to string
  #      ) {
  */
 

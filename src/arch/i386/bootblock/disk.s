@@ -18,7 +18,7 @@
 /**
  * @brief reset disks
  *
- # static void diskreset(uint8_t DL  /**< [in] BIOS drive number */
+ # static void diskreset(uint8_t DL -- [in] BIOS drive number
  #      ) {
  */
 diskreset:
@@ -31,7 +31,7 @@ diskreset:
 /**
  * @brief read sector
  *
- # void diskread(uint32_t DX_AX   /**< [in] LBA sector number */
+ # void diskread(uint32_t DX_AX -- [in] LBA sector number
  #      ) {
  */
 

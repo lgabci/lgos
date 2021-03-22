@@ -108,8 +108,7 @@ main:
         movw    $PENTRY_CNT, %cx
         xorw    %bx, %bx
 
-1:      movb    (%si), %al
-        testb   $0x80, %al              # boot flag?
+1:      testb   $0x80, (%si)            # boot flag?
         jz      3f
         testw   %bx, %bx                # another one active partition?
         jz      2f
