@@ -27,7 +27,7 @@ BEGIN {
         if ($i == ".set") {             # .set name, val --> #define nam val
           $i = "#define"
           sub(/,/, " ", $(i+1))
-          i ++
+          i = i + 2
           continue
         }
         if ($i == ".lcomm") {           # .lcomm var, len --> byte var[len]

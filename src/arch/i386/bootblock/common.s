@@ -25,6 +25,7 @@
  * - set segment registers: @c DS, @c ES, @c SS
  * - set up stack: @c SP
  * - set up <tt>CS:IP</tt>, far jump to @c 0x7C00:@ref main
+ * - don't touch DL (BIOS drive number)
  *
  # void start(void) {
  */

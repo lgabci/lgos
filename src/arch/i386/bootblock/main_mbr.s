@@ -96,12 +96,14 @@
  */
 .globl main
 main:
+        pushw   %dx
         call    initvideo
 
         movw    $mbrstr, %si
         call    printstr
 
-
+        popw    %dx
+        call    initdisk
 
         # find active partition
         movw    $PTABLE_START, %si
