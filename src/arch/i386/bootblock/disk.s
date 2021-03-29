@@ -1,4 +1,4 @@
-.arch i8086,nojumps
+.arch i8086,jumps
 .code16
 
 /**
@@ -10,9 +10,9 @@
 
 .set INT_DISK,       0x13        /**< @brief BIOS disk interrupt */
 .set DISK_RESET,     0x00        /**< @brief reset disks */
+.set DISK_GETSTATUS, 0x01        /**< @brief get status of last operation */
 .set DISK_READ,      0x02        /**< @brief read sectors */
 .set DISK_GETPARAM,  0x08        /**< @brief get drive parameters */
-
 
 .section .text  # ---------------------------------------------------------
 
@@ -27,11 +27,11 @@
  * - CF = 0 if successful, 1 on error
  * - AH = status
  *
- # static void diskreset(uint8_t DL -- [in] BIOS drive number
- #      ) {
+ # static void diskreset() {
  */
 diskreset:
         movb    $DISK_RESET, %ah
+        movb    drive, %dl
         jc      1f
         movw    $iostr, %si
         jmp     fatal
@@ -47,6 +47,18 @@ diskreset:
  * BIOS output
  * - CF = 0 if successful, 1 on error
  * - AH = status
+ * - BL = floppy drive type
+ * - CH = low 8 bits of cylinder number
+ * - CL = bits 0-5: maximum sector number,@n
+ *   bits 6-7: high 2 bits of maximum cylinder number
+ * - DH = maximum head number
+ * - DL = number of drives
+ * - ES:DI = drive parameter table, floppies only
+ *
+ * BIOS bugs
+ * - DI, SI, BP, DS, ES registers destroyed
+ * - call @ref DISK_GETSTATUS to reset bus
+ * - leave interrupts diasbled, STI after interrupt
  *
  # void initdisk(uint8_t DL -- [in] BIOS drive number
  #      ) {
@@ -54,6 +66,12 @@ diskreset:
 .globl initdisk
 initdisk:
         movb    %dl, drive
+        movb    $DISK_GETPARAM, %ah
+        pushw   %es
+        int     $INT_DISK
+        popw    %es
+        movw    $iostr, %si
+        jc      fatal
         ret
 
 /**
@@ -86,10 +104,7 @@ initdisk:
 
 .globl diskread
 diskread:
-        movb    $DISK_RESET, %ah
-        jc      1f
-        movw    $iostr, %si
-        jmp     fatal
+/** @todo write this function */
 1:      ret
 
 .section .data  # ---------------------------------------------------------
