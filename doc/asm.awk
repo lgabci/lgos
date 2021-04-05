@@ -6,7 +6,7 @@ BEGIN {
   label = ""
   if ($1 ~ ":$") {
     label = $1
-    sub(/:/, "", label)
+    sub(/:$/, "", label)
     $1 = ""
   }
 
@@ -26,13 +26,13 @@ BEGIN {
         }
         if ($i == ".set") {             # .set name, val --> #define nam val
           $i = "#define"
-          sub(/,/, " ", $(i+1))
+          sub(/,$/, " ", $(i+1))
           i = i + 2
           continue
         }
         if ($i == ".lcomm") {           # .lcomm var, len --> byte var[len]
           $i = "byte"
-          sub(/,/, "", $(i+1))
+          sub(/,$/, "", $(i+1))
           $(i+1) = $(i+1) "[" $(i+2) "];"
           $(i+2) = ""
           i = i + 2
@@ -45,7 +45,7 @@ BEGIN {
             $i == ".hword" || $i == ".int" || $i == ".long" ||
             $i == ".octa" || $i == ".quad" || $i == ".short" ||
             $i == ".single" || $i == ".word" || $i == ".extern") {
-          sub(/\./, "", $i)
+          sub(/^\./, "", $i)
           $(i-1) = $i;
           $i = label;
           $(i+1) = "= " $(i+1) ";"
@@ -77,6 +77,16 @@ BEGIN {
       }
       if ($i == "ljmp") {
         $i = "}"
+        $(i+1) = ""
+        $(i+2) = ""
+        i = i + 2
+        continue
+      }
+      if ($i ~ /mov[bwl]/) {
+        sub(/,$/, "", $(i+1))
+        sub(/^(\$|%)/, "", $(i+1))
+        sub(/^(\$|%)/, "", $(i+2))
+        $i = $(i+2) " = " $(i+1) ";"
         $(i+1) = ""
         $(i+2) = ""
         i = i + 2

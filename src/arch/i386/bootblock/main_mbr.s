@@ -1,4 +1,4 @@
-.arch i8086,nojumps
+.arch i8086
 .code16
 
 /**
@@ -71,6 +71,9 @@
  * | 0x0C   | 4      | Number of sectors in partition                        |
  */
 
+.set BIOSSEG, 0x07C0   /**< @brief BIOS loads MBR to <tt>0x0000:0x7C00</tt> */
+.set RELOCSEG, 0x0600  /**< @brief relocate  MBR to <tt>0x0600:0000</tt> */
+
 /** @brief partition table's address in MBR, first @ref PartEntry
  *         "partition entry" */
 .set PTABLE_START, 0x1be
@@ -113,23 +116,23 @@ main:
 1:      testb   $0x80, (%si)            # boot flag?
         jz      3f
         testw   %bx, %bx                # another one active partition?
-        jz      2f
-        movw    $invstr, %si            # invalid partition table
-        jmp     fatal
-2:      movw    %si, %bx                # BX -> active partition entry
+        jnz     4f
+
+2:      incw    %bx
+        movw    PENTRY_LBA(%si), %ax
+        movw    PENTRY_LBA + 2(%si), %dx
 
 3:      addw    $PENTRY_SIZE, %si
         loop    1b
 
-        testw   %bx, %bx                # no active partition found?
-        jnz     4f
-        movw    $nastr, %si
+        testw   %bx, %bx                # active partition found?
+        jnz     5f
+4:      movw    $invstr, %si            # invalid partition table
         jmp     fatal
+5:
 
-
-4:      movw    PENTRY_LBA(%bx), %ax
-        movw    PENTRY_LBA + 2(%bx), %dx
-
+        movw    $(BIOSSEG - RELOCSEG) << 4, %bx
+        call    diskread
 
 
 

@@ -1,4 +1,4 @@
-.arch i8086,jumps
+.arch i8086
 .code16
 
 /**
@@ -26,6 +26,9 @@
  * BIOS output
  * - CF = 0 if successful, 1 on error
  * - AH = status
+ *
+ * Modified registers:
+ * - AX, DL, flags
  *
  # static void diskreset() {
  */
@@ -60,22 +63,52 @@ diskreset:
  * - call @ref DISK_GETSTATUS to reset bus
  * - leave interrupts diasbled, STI after interrupt
  *
+ * Modified registers:
+ * - AX, BL, CX, DX, DI, SI, BP, ES
+ *
  # void initdisk(uint8_t DL -- [in] BIOS drive number
  #      ) {
  */
 .globl initdisk
 initdisk:
         movb    %dl, drive
+        pushw   %dx
         movb    $DISK_GETPARAM, %ah
+        pushw   %ds
         pushw   %es
-        int     $INT_DISK
+        int     $INT_DISK               # get drive parameters
+        sti
         popw    %es
-        movw    $iostr, %si
-        jc      fatal
+        popw    %ds
+        popw    %dx
+        jc      1f                      # on error
+
+        movw    %cx, %ax                # CL: low 5 bits = sector number
+        andw    $0x03f, %cx
+        movw    %cx, secn
+
+        xchgb   %ah, %al                # AX = CX: CH = low 8 bits of cyl
+        movb    $6, %cl                 #          CL bits 6-7 = hight 2 bits
+        shrb    %cl, %ah
+        incw    %ax
+        movw    %ax, cyln
+
+        xorw    %ax, %ax                # DH = head number
+        movb    %dh, %al
+        incw    %ax
+        movw    %ax, headn
+
+        ret
+
+1:      testb   %dl, %dl                 # floppy 0: on error assume 360KB
+        jne     _ioerr
         ret
 
 /**
  * @brief read sectors into memory
+ *
+ * @todo repeat floppy reads on error
+ * @todo save registers between repeated reads
  *
  * BIOS input
  * - AH = @ref DISK_READ
@@ -97,20 +130,76 @@ initdisk:
  * - BIOS bug destroys DX
  * - BIOS bug improper set the CF: set CF before call INT
  *
+ * Modified registers:
+ * - AX, BX, CX, DX, SI, flags
+ *
  # void diskread(uint32_t DX_AX, -- [in] LBA sector number
- #               char *   ES_BX  -- [in] data buffer
+ #               char *ES_BX  -- [in] data buffer
  #      ) {
  */
 
 .globl diskread
 diskread:
-/** @todo write this function */
-1:      ret
+        pushw   %ax                     # save lower byte
+        xorw    %ax, %ax
+        xchgw   %dx, %ax
+        movw    secn, %cx
+        divw    %cx                     # div high byte
+        popw    %ax                     # restore lower byte
+        divw    %cx                     # div remainder + lower byte
+        incw    %dx
+        movw    %dx, %cx                # sector number (low 5 bits)
+        xorw    %dx, %dx
+
+        divw    headn
+        xchgb   %dh, %dl
+        movb    drive, %dl              # DX = head number and drive
+
+        cmpw    cyln, %ax               # valid cylinder number?
+        jbe     1f
+        movw    $geostr, %si
+        jmp     fatal
+1:
+        movb    %al, %ch
+        rorb    $1, %ah
+        rorb    $1, %ah
+        orb     %ah, %cl
+
+        movw    $DISK_READ << 8 | 1, %ax
+        pushw   %dx
+        stc
+        int     $INT_DISK
+        sti
+        popw    %dx
+
+        jc      _ioerr
+
+1:      hlt
+        jmp     1b
+        ret
+
+/**
+ * @brief print I/O error message, halt machine
+ *
+ * make I/O error calls shorten
+ *
+ # static void _ioerr(void) {
+ #  fatal();
+ */
+_ioerr:
+        movw    $iostr, %si
+        jmp     fatal
+/** } */
 
 .section .data  # ---------------------------------------------------------
 
-iostr:  .string "I/O error\r\n"       /**< @brief I/O error text */
+iostr:  .string "I/O error\r\n"         /**< @brief I/O error text */
+geostr: .string "Geom error\r\n"        /**< @brief Geom error text */
+
+cyln:   .word 0x28                      /**< @brief Maximum cylinder number */
+headn:  .word 0x02                      /**< @brief Maximum head number */
+secn:   .word 0x09                      /**< @brief Maximum sector number */
 
 .section .bss  # ----------------------------------------------------------
 
-.lcomm drive, 1                       /**< @brief BIOS drive number */
+.lcomm drive, 1                         /**< @brief BIOS drive number */

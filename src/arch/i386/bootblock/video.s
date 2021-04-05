@@ -1,4 +1,4 @@
-.arch i8086,nojumps
+.arch i8086
 .code16
 
 /**
