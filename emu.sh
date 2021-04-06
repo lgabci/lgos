@@ -13,18 +13,29 @@ READELF="$ARCH-readelf"
 
 "$RUNDIR/build.sh"
 
+# check date of files
+[ ! -e "$IMGFILE" -o "$MBRFILE" -nt "$IMGFILE" ] && mbrcp="Y" || mbrcp="N"
+
 # create image file
 imgdir="$(dirname "$IMGFILE")"
 if [ ! -e "$imgdir" ]; then
   mkdir -p "$imgdir"
 fi
-dd if="$RUNDIR/emu/mbr.bin" of="$IMGFILE" status=none
-#dd if="$MBRFILE" of="$IMGFILE" status=none
-"$READELF" -l "$MBRFILE" | \
-  awk -v imgfile="$IMGFILE" -v mbrfile="$MBRFILE" -f "$RUNDIR/emu/mbr.awk" | \
-  sh
+if [ ! -e "$IMGFILE" ]; then
+  dd if="$RUNDIR/emu/mbr.bin" of="$IMGFILE" status=none
+  dd if=/dev/zero of="$IMGFILE" bs="$IMGSIZE" seek=1 count=0 status=none
+fi
 
-dd if=/dev/zero of="$IMGFILE" bs="$IMGSIZE" seek=1 count=0 status=none
+if [ "$mbrcp" = "Y" ]; then
+  "$READELF" -l "$MBRFILE" | \
+    awk -v imgfile="$IMGFILE" -v mbrfile="$MBRFILE" -f "$RUNDIR/emu/mbr.awk" | \
+    sh
+  ###################################################################
+  "$READELF" -l "$MBRFILE" | \
+    awk -v imgfile="$IMGFILE" -v mbrfile="$MBRFILE" -v offset='2048*512' -f "$RUNDIR/emu/mbr.awk" | \
+    sh
+  ###################################################################
+fi
 
 # start Qemu
 PAR="-machine pc -cpu 486"

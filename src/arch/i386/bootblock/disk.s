@@ -77,6 +77,9 @@ initdisk:
         pushw   %ds
         pushw   %es
         int     $INT_DISK               # get drive parameters
+1: cli
+   hlt
+   jmp 1b
         sti
         popw    %es
         popw    %ds
@@ -173,9 +176,6 @@ diskread:
         popw    %dx
 
         jc      _ioerr
-
-1:      hlt
-        jmp     1b
         ret
 
 /**

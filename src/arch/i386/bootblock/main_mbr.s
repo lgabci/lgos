@@ -134,12 +134,10 @@ main:
         movw    $(BIOSSEG - RELOCSEG) << 4, %bx
         call    diskread
 
-
-
-1:      cli
-        hlt
-        jmp     1b
-/** } */
+1: cli
+   hlt
+   jmp 1b
+        ljmp    $BIOSSEG, $0
 
 .section .data  # ---------------------------------------------------------
 
