@@ -72,18 +72,13 @@ diskreset:
 .globl initdisk
 initdisk:
         movb    %dl, drive
-        pushw   %dx
         movb    $DISK_GETPARAM, %ah
         pushw   %ds
         pushw   %es
         int     $INT_DISK               # get drive parameters
-1: cli
-   hlt
-   jmp 1b
         sti
         popw    %es
         popw    %ds
-        popw    %dx
         jc      1f                      # on error
 
         movw    %cx, %ax                # CL: low 5 bits = sector number
@@ -143,26 +138,36 @@ initdisk:
 
 .globl diskread
 diskread:
-        pushw   %ax                     # save lower byte
+        xchgw   %ax, %cx                # save dividend low byte
         xorw    %ax, %ax
         xchgw   %dx, %ax
-        movw    secn, %cx
-        divw    %cx                     # div high byte
-        popw    %ax                     # restore lower byte
-        divw    %cx                     # div remainder + lower byte
-        incw    %dx
-        movw    %dx, %cx                # sector number (low 5 bits)
-        xorw    %dx, %dx
+        movw    $secn, %si              # number of sectors, 6 bits
+        divw    (%si)                   # div high byte
 
-        divw    headn
+        xchgw   %ax, %cx                # rest dividend low byte, save hi byte
+        divw    (%si)                   # div remainder + low byte
+
+        incw    %dx                     # remainder, sector number, 6 bits
+        xchgw   %dx, %cx                # DX:AX = LBA / secn, 18 bits
+
+        movw    $headn, %si             # cyl number is 10 bits long
+        cmpw    (%si), %dx              # DX < headn
+        jae      _geoerr
+
+        # DX:AX = LBA / sectors per track
+        # CX = sector number (low 5 bits)
+
+        divw    (%si)
+
+        # AX = cylinder number, 10 bits (LBA / sectors per track / heads)
+        # DX = head number
+
+        cmpw    $cyln, %ax              # valid cylinder number?
+        jae     _geoerr
+
         xchgb   %dh, %dl
         movb    drive, %dl              # DX = head number and drive
 
-        cmpw    cyln, %ax               # valid cylinder number?
-        jbe     1f
-        movw    $geostr, %si
-        jmp     fatal
-1:
         movb    %al, %ch
         rorb    $1, %ah
         rorb    $1, %ah
@@ -188,6 +193,19 @@ diskread:
  */
 _ioerr:
         movw    $iostr, %si
+        jmp     fatal
+/** } */
+
+/**
+ * @brief print Geom error message, halt machine
+ *
+ * make Geom error calls shorten
+ *
+ # static void _geoerr(void) {
+ #  fatal();
+ */
+_geoerr:
+        movw    $geostr, %si
         jmp     fatal
 /** } */
 

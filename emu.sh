@@ -7,6 +7,7 @@ IMGFILE="$BUILDDIR/emu/lgos.img"
 IMGSIZE=100M
 
 MBRFILE="$BUILDDIR/arch/i386/bootblock/main_mbr.elf"
+FATFILE="$BUILDDIR/arch/i386/bootblock/main_fat.elf"
 
 ARCH=i386-elf
 READELF="$ARCH-readelf"
@@ -15,6 +16,7 @@ READELF="$ARCH-readelf"
 
 # check date of files
 [ ! -e "$IMGFILE" -o "$MBRFILE" -nt "$IMGFILE" ] && mbrcp="Y" || mbrcp="N"
+[ ! -e "$IMGFILE" -o "$FATFILE" -nt "$IMGFILE" ] && fatcp="Y" || fatcp="N"
 
 # create image file
 imgdir="$(dirname "$IMGFILE")"
@@ -30,11 +32,12 @@ if [ "$mbrcp" = "Y" ]; then
   "$READELF" -l "$MBRFILE" | \
     awk -v imgfile="$IMGFILE" -v mbrfile="$MBRFILE" -f "$RUNDIR/emu/mbr.awk" | \
     sh
-  ###################################################################
-  "$READELF" -l "$MBRFILE" | \
-    awk -v imgfile="$IMGFILE" -v mbrfile="$MBRFILE" -v offset='2048*512' -f "$RUNDIR/emu/mbr.awk" | \
+fi
+
+if [ "$fatcp" = "Y" ]; then
+  "$READELF" -l "$FATFILE" | \
+    awk -v imgfile="$IMGFILE" -v mbrfile="$FATFILE" -v offset='2048*512' -f "$RUNDIR/emu/mbr.awk" | \
     sh
-  ###################################################################
 fi
 
 # start Qemu
