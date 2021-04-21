@@ -6,6 +6,8 @@
  * @brief common functions
  *
  * boot bootblock functions, program execution starts here on @ref start
+ *
+ * .itext section for the initialisation code, at the beginning of .text
  */
 
 .set BIOSSEG, 0x07C0   /**< @brief BIOS loads MBR to <tt>0x0000:0x7C00</tt> */
@@ -15,7 +17,7 @@
 .extern _BIN_START
 .extern _BIN_SIZE
 
-.section .text  # ---------------------------------------------------------
+.section .itext, "ax", @progbits  # ---------------------------------------
 
 /**
  * @brief code starts to run here
@@ -46,6 +48,8 @@ start:
         cld
 rep     movsb
         ljmp    $RELOCSEG, $main
+
+.section .text  # ---------------------------------------------------------
 
 /**
  * @brief print error message and halt

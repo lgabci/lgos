@@ -3,7 +3,7 @@ set -eu
 
 RUNDIR=$(dirname "$0")
 BUILDDIR=/tmp/lgos
-ELFFILE="$BUILDDIR/arch/i386/bootblock/main_mbr.elf"
+ELFFILE="$BUILDDIR/arch/i386/bootblock/main_fat.elf"
 
 "$RUNDIR/build.sh"
 

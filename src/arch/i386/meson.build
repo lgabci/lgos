@@ -9,3 +9,4 @@ add_project_link_arguments(['-nostdlib', '-lgcc'],
                           )
 
 subdir('bootblock')
+subdir('loader')

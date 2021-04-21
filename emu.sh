@@ -8,6 +8,7 @@ IMGSIZE=100M
 
 MBRFILE="$BUILDDIR/arch/i386/bootblock/main_mbr.elf"
 FATFILE="$BUILDDIR/arch/i386/bootblock/main_fat.elf"
+LDRFILE="$BUILDDIR/arch/i386/loader/main_loader.bin"
 
 ARCH=i386-elf
 READELF="$ARCH-readelf"
@@ -17,6 +18,7 @@ READELF="$ARCH-readelf"
 # check date of files
 [ ! -e "$IMGFILE" -o "$MBRFILE" -nt "$IMGFILE" ] && mbrcp="Y" || mbrcp="N"
 [ ! -e "$IMGFILE" -o "$FATFILE" -nt "$IMGFILE" ] && fatcp="Y" || fatcp="N"
+[ ! -e "$IMGFILE" -o "$LDRFILE" -nt "$IMGFILE" ] && ldrcp="Y" || ldrcp="N"
 
 # create image file
 imgdir="$(dirname "$IMGFILE")"
@@ -36,9 +38,15 @@ fi
 
 if [ "$fatcp" = "Y" ]; then
   "$READELF" -l "$FATFILE" | \
-    awk -v imgfile="$IMGFILE" -v mbrfile="$FATFILE" -v offset='2048*512' -f "$RUNDIR/emu/mbr.awk" | \
+    awk -v imgfile="$IMGFILE" -v mbrfile="$FATFILE" -v offset='2048*512' \
+        -f "$RUNDIR/emu/mbr.awk" | \
     sh
 fi
+
+if [ "$ldrcp" = "Y" ]; then
+  echo LDR CP
+fi
+exit ####
 
 # start Qemu
 PAR="-machine pc -cpu 486"

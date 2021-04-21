@@ -134,6 +134,9 @@ main:
         movw    $(BIOSSEG - RELOCSEG) << 4, %bx
         call    diskread
 
+/** @todo check MBR signature, 0xaa55
+  * @todo send parameters to boot program */
+
         ljmp    $BIOSSEG, $0
 
 .section .data  # ---------------------------------------------------------

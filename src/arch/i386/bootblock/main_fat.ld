@@ -3,7 +3,8 @@ OUTPUT_FORMAT(elf32-i386)
 ENTRY(start)
 
 MEMORY {
-  ram       : ORIGIN = 0x000, LENGTH = 0x01fe
+  jram      : ORIGIN = 0x000, LENGTH = 0x0003
+  ram       : ORIGIN = 0x05a, LENGTH = 0x01a4
   bsign     : ORIGIN = 0x1fe, LENGTH = 0x0002
   bss       : ORIGIN = 0x200, LENGTH = 0x0200
 }
@@ -11,8 +12,12 @@ MEMORY {
 SECTIONS {
   _BIN_START = .;
 
+  .jtext : ALIGN(1) {
+    *(.jtext)
+  } >jram
+
   .text : ALIGN(1) {
-    */common.s.o(.text)
+    *(.itext)
     *(.text)
   } >ram
 
