@@ -9,6 +9,7 @@ IMGSIZE=100M
 MBRFILE="$BUILDDIR/arch/i386/bootblock/main_mbr.elf"
 FATFILE="$BUILDDIR/arch/i386/bootblock/main_fat.elf"
 LDRFILE="$BUILDDIR/arch/i386/loader/main_loader.bin"
+LDRTRGPATH=boot
 
 ARCH=i386-elf
 READELF="$ARCH-readelf"
@@ -26,8 +27,16 @@ if [ ! -e "$imgdir" ]; then
   mkdir -p "$imgdir"
 fi
 if [ ! -e "$IMGFILE" ]; then
+  partstart=2048
+  partsize=40960
+  secsize=512
+  offset=$((partstart * secsize))
+  size=$((partsize * secsize))
+
   dd if="$RUNDIR/emu/mbr.bin" of="$IMGFILE" status=none
   dd if=/dev/zero of="$IMGFILE" bs="$IMGSIZE" seek=1 count=0 status=none
+  LOOPDEV=$(udisksctl loop-setup --file "$IMGFILE" --offset $offset \
+                      --size $size --no-user-interaction)
 fi
 
 if [ "$mbrcp" = "Y" ]; then
