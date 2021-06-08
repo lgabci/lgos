@@ -6,8 +6,8 @@
  * @brief i386 bootblock, FAT
  *
  * Steps:
- * -# read sector at @ref addsec
- * -# read sectors 
+ * -# read sector at @ref fblk
+ * -# read sectors
  * -# start boot loader
  *
  * .jtext section for the first jump instruction
@@ -44,6 +44,10 @@ main:
         call    printstr
 
 
+.arch i386                      ##
+        movl    fblk, %eax      ##
+.arch i8086                     ##
+
 1:      cli
         hlt
         jmp     1b
@@ -52,7 +56,7 @@ main:
 
 .section .data  # ---------------------------------------------------------
 
-/** @brief physycal sector number of sector addresses, set by install script */
-addsec: .long 0x0
+fblk:   .int 0x0        /**< @brief physycal sector number of sector
+                                    addresses, set by install script */
 
-fatstr: .string "LGOS FAT\r\n"    /**< @brief i386 welcome text */
+fatstr: .string "LGOS FAT\r\n"  /**< @brief i386 welcome text */

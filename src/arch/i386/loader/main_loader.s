@@ -28,6 +28,11 @@
 start:
         cli
 
+.rept 8192
+        nop
+.endr
 1:
         hlt
         jmp     1b
+
+/** } */
