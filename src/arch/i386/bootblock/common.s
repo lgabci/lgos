@@ -3,7 +3,7 @@
 
 /**
  * @file common.s
- * @brief common functions
+ * @brief i386 common functions
  *
  * boot bootblock functions, program execution starts here on @ref start
  *
