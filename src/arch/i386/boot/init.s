@@ -10,8 +10,8 @@
 
 .section .text
 
-.globl _start
-_start:
+.globl start
+start:
         cli                     # set stack
         movw    $NEWSEG, %ax
         movw    %ax, %ss
@@ -46,7 +46,3 @@ rep     movsw
 .ifdef BSTYPE_MBR
 grtmsg: .string "MBR\r\n"
 .endif
-
-########################################
-.include "inc.s"
-########################################

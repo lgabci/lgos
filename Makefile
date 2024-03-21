@@ -21,8 +21,8 @@ endef
 # canned recipes
 define run-as
 	$(AS) $(ASFLAGS) -I$(<D) -Wa,--MD,$(@:.o=.d) -o $@ $<
-	a=$$(awk -v obj=$@ -v src=$< -f $(srcroot)/misc/awk-phony-dep.awk \
-	  $(@:.o=.d)); echo "$$a" >>$(@:.o=.d)
+	@a=$$(awk -v obj=$@ -v src=$< -f $(srcroot)/misc/awk-phony-dep.awk \
+	  $(@:.o=.d)) && echo "$$a" >>$(@:.o=.d)
 endef
 
 define run-cc
@@ -44,19 +44,18 @@ define inclmk
 srcdir := $(abspath $(patsubst %/,%,$(dir $1)))
 blddir := $$(call to-bld,$$(srcdir))
 
-$(blddir):
-	mkdir -p $$@
-
 include $1
 
+$$(blddir)/%.o: $$(srcdir)/%.s | $$(blddir)
+	$$(run-as)
+
+$$(blddir)/%.o: $$(srcdir)/%.c | $$(blddir)
+	$$(run-cc)
+
+$$(blddir):
+	mkdir -p $$@
+
 endef
-
-%.elf:
-	$(run-ld)
-
-%.bin:
-	$(run-bin)
-
 
 findfiles = $(foreach d,$(wildcard $1/*),\
 $(wildcard $(d)/$2) $(call findfiles,$(d),$2)\
