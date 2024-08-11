@@ -1,5 +1,7 @@
 [binaries]
 c = 'i386-elf-gcc'
+objdump = 'i386-elf-objdump'
+objcopy = 'i386-elf-objcopy'
 strip = 'i386-elf-strip'
 
 [host_machine]
