@@ -11,7 +11,8 @@ project('lgos',
 
 compiler = meson.get_compiler('c')
 compiler_args = compiler.get_supported_arguments(['-pedantic',
-                                                  '-ffreestanding'],
+                                                  '-ffreestanding',
+                                                  '-Wa,--fatal-warnings'],
                                                  checked: 'require')
 
 if not compiler.has_multi_link_arguments(['-nostdlib', '--entry=main'])
