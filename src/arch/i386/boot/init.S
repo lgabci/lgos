@@ -12,8 +12,8 @@
 
 .section .text
 
-.globl _start
-_start:
+.global start
+start:
         cli                     // set stack
         cld                     // ABI
         movw    $COPY_SEG, %ax
@@ -30,12 +30,18 @@ rep     movsw
 
         ljmp    $COPY_SEG, $1f
 1:
+        call    init_video
+        movw    $msgstr, %si
+        call    write_str
+
 
 //////////////////////////////////////////////////////////////////////////////
         cli
 1:      hlt
         jmp     1b
 //////////////////////////////////////////////////////////////////////////////
+
+.section .data
 
 .section .bss
 

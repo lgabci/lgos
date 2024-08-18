@@ -1,6 +1,6 @@
 OUTPUT_ARCH(i386)
 OUTPUT_FORMAT(elf32-i386)
-ENTRY(_start)
+ENTRY(start)
 
 PHDRS {
   text PT_LOAD;
@@ -10,7 +10,7 @@ PHDRS {
 }
 
 MEMORY {
-  ram  (rwx) : ORIGIN = 0,          LENGTH = 0x1be
+  ram  (rwx) : ORIGIN = 0,          LENGTH = 0x1b8
   bsgn (r)   : ORIGIN = 0x1fe,      LENGTH = 2
   bss  (rw)  : ORIGIN = 0x200,      LENGTH = 0x200
 }
