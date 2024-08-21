@@ -17,6 +17,7 @@ MEMORY {
 
 SECTIONS {
   .text : {
+    *(.itext)
     *(.text)
   } >ram :text
 

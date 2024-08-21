@@ -9,8 +9,7 @@
 
 .set STACK_SIZE, 0x100          // stack size in bytes
 
-
-.section .text
+.section .itext, "ax", @progbits  // init .text section
 
 .global start
 start:
@@ -21,19 +20,25 @@ start:
         movw    $stkend, %sp
         sti
 
-        movw    %ax, %ds
+        pushw   %dx             // save BIOS boot drive number
+
+        movw    %ax, %ds        // copy code to 0x0600:0x0000
         movw    %ax, %es
         movw    $(BIOS_SEG - COPY_SEG) << 4, %si
         xorw    %di, %di
         movw    $BIN_SIZE >> 1, %cx
 rep     movsw
 
-        ljmp    $COPY_SEG, $1f
+        ljmp    $COPY_SEG, $1f  // jump to new segment
+
+.section .text
 1:
         call    init_video
         movw    $msgstr, %si
         call    write_str
 
+        popw    %dx             // restore BIOS drive number
+        call    init_disk
 
 //////////////////////////////////////////////////////////////////////////////
         cli

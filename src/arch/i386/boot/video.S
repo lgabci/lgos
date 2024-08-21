@@ -2,21 +2,22 @@
 .code16gcc
 .arch i8086,nojumps
 
-.set vid_int, 0x10              // video interrupt
-.set vid_getmode, 0x0f          // get video mode and active page
-.set vid_tty, 0x0e              // teletype output
+.set VID_INT, 0x10              // video interrupt
+.set VID_GETMODE, 0x0f          // get video mode and active page
+.set VID_TTY, 0x0e              // teletype output
 
 .section .text
 
-/* get current video page
+/* initialize video: get current video page
    input: -
    output: vpg = current video page
    modified: AX, BH
 */
 .global init_video
 init_video:
-        movb    $vid_getmode, %ah
-        int     $vid_int
+        xorb    %bh, %bh        // BIOS bug
+        movb    $VID_GETMODE, %ah
+        int     $VID_INT
         movb    %bh, vpg
         ret
 
@@ -27,9 +28,9 @@ init_video:
 */
 .global write_chr
 write_chr:
-        movb    $vid_tty, %ah
+        movb    $VID_TTY, %ah
         movb    vpg, %bh
-        int     $vid_int
+        int     $VID_INT
         ret
 
 /* print string
