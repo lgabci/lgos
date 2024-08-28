@@ -36,7 +36,7 @@ write_chr:
 /* print string
    input: SI = pointer to zero terminated string
    output: -
-   modified: AX, BX, BP (BIOS bug)
+   modified: AX, BX, SI, BP (BIOS bug)
 */
 .global write_str
 write_str:

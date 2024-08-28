@@ -28,15 +28,18 @@ init_disk:
         popw    %ds
         popw    %es
 
+        pushfw
         movb    $DISK_GETST, %ah  // BIOS bug
         movb    drive, %dl
         int     $DISK_INT
+        popfw
 
-test error
+        jc      9f              // test error
 
         movb    %cl, %al        // max sector number
         andb    $0x3f, %al
-        movb    %al, msec
+        cbtw
+        movw    %ax, msec
 
         xorw    %ax, %ax        // max head number, it can be 256
         movb    %dh, %al
@@ -53,9 +56,18 @@ test error
         ret
 
 1:
-test if CHS is filled
+        //test if CHS is filled
+        movw    mcyl, %cx
+        jcxz    9f
+        movw    mhead, %cx
+        jcxz    9f
+        movw    msec, %cx
+        jcxz    9f
+
         ret
 
+9:      movw    $dskerr, %si    // on error
+        jmp     halt
 
 /* reset disk system
    input: -
@@ -73,7 +85,9 @@ reset_disk:
 
 mcyl:   .word 0x00              // disk geometry: must be filled for FDDs
 mhead:  .word 0x00              //                must be empty for HDDs
-msec:   .byte 0x00
+msec:   .word 0x00
+
+dskerr: .string "Disk error."
 
 .section .bss
 
