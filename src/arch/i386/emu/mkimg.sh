@@ -21,9 +21,10 @@ mbrbin="$3"
 sfdisk=$(whereis -b sfdisk | awk '{print $2}')
 [ -n "$sfdisk" ] || error "no sfdisk found"
 
-
-
+# create image file
 qemu-img create -q -f raw "$imgfile" "$imgsize"
 dd if="$mbrbin" of="$imgfile" bs=512 conv=notrunc status=none
+
+# create partition table
 echo ',20M,,*' |
   "$sfdisk" --no-reread --no-tell-kernel --label dos -q "$imgfile"

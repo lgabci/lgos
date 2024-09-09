@@ -41,6 +41,10 @@ rep     movsw
         call    init_disk
 
 //////////////////////////////////////////////////////////////////////////////
+        movw    $0x0000, %dx
+        movw    $0x0008, %ax
+        movw    $0x400, %bx
+        call    read_sector
         cli
 1:      hlt
         jmp     1b
