@@ -5,7 +5,9 @@ hd_img = custom_target('hd.img',
                                  '@OUTPUT@',
                                  '100M',
                                  boot_mbr_elf,
-                                '@INPUT@'],
+                                '@INPUT@',
+                                loader_elf,
+                                loader_bin],
                        input: boot_mbr_bin,
                        output: 'hd.img')
 

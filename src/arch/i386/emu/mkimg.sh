@@ -8,7 +8,7 @@ error() {
   exit 1
 }
 
-if [ $# -ne 4 ]; then
+if [ $# -ne 6 ]; then
   echo "$basename: bad argument list" >&2
   echo "\t$@" >&2
   exit 1
@@ -18,6 +18,8 @@ imgfile="$1"
 imgsize="$2"
 mbrelf="$3"
 mbrbin="$4"
+loaderelf="$5"
+loaderbin="$6"
 
 # set symbol address
 # parameters: 1. img file
@@ -40,8 +42,8 @@ set_sym() {
   local vals=""
 
   local pos=$(i386-elf-nm -t d "$elffile" | \
-              awk '{if ($3 == "beh") {print $1 + 0}}')
-  if [ -z "$pos" -o "$pos" -eq 0 ]; then
+              awk '{if ($3 == "'"$symname"'") {print $1 + 0}}')
+  if [ -z "$pos" ]; then
     echo "$basename: symbol \"$symname\" not found in file $elffile" >&2
     exit 1
   fi
@@ -69,7 +71,7 @@ sfdisk=$(whereis -b sfdisk | awk '{print $2}')
 qemu-img create -q -f raw "$imgfile" "$imgsize"
 dd if="$mbrbin" of="$imgfile" bs=512 conv=notrunc status=none
 
-a=$(set_sym "$imgfile" 0 "$mbrelf" beh 1 1)
+set_sym "$imgfile" 0 "$mbrelf" beh 1 1
 
 # create partition table
 echo ',20M,,*' |

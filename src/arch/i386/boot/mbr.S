@@ -1,6 +1,6 @@
 /* LGOS i386 boot init asm file */
 .code16gcc
-.arch i8086,nojumps
+//.arch i8086,nojumps
 
 .section .text
 
