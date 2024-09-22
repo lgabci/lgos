@@ -16,7 +16,7 @@
 .global main
 main:
         cmpb    $0, beh         // behavior, 0 = load active boot block
-//        jne     load_ldr        //           else load loader
+        jne     load_ldr        //           else load loader
 
         movw    $PARTTAB_START, %si
         movw    $PARTENTRY_CNT, %cx
@@ -28,7 +28,7 @@ main:
 1:      testb   $0x80, PARENTRY_STAT(%si)
         jz      2f
 
-        movw    %si, bsi        // save to pass to VBR
+        pushw   %si             // save to pass to VBR
         incw    %di
         movw    PARENTRY_START(%si), %ax
         movw    PARENTRY_START+2(%si), %dx
@@ -51,26 +51,24 @@ main:
         xorw    %bx, %bx
         call    read_sector
 
-        movw    bdx, %dx        // values pass to VBR
-        movw    bes, %es
-        movw    bdi, %di
-        movw    bsi, %si
+        popw    %si             // values pass to VBR
+        movw    %si, %bp
+        popw    %es
+        popw    %di
+        popw    %dx
+
+        xorw    %ax, %ax
+        cli
+        movw    %ax, %ss
+        movw    $BIOS_SEG << 4, %sp
 
         ljmpw   $0, $BIOS_SEG << 4
 
 4:      movw    $invptb, %si    // on error
         jmp     halt
 
-//////////////////////////////////////////////////////////////////////////////
-        cli
-1:      hlt
-        jmp     1b
-//////////////////////////////////////////////////////////////////////////////
-
-
 .section .data
 
-bsi:    .word 0                 // SI value, pass to VBR
 beh:    .byte 0                 // behavior: 0 = original MBR, else loader
 
 .global msgstr
