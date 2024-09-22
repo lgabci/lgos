@@ -21,6 +21,9 @@ mbrbin="$4"
 loaderelf="$5"
 loaderbin="$6"
 
+startsec="2048"
+psize="20M"
+
 # set symbol address
 # parameters: 1. img file
 #             2. elf file offset in img file
@@ -71,8 +74,15 @@ sfdisk=$(whereis -b sfdisk | awk '{print $2}')
 qemu-img create -q -f raw "$imgfile" "$imgsize"
 dd if="$mbrbin" of="$imgfile" bs=512 conv=notrunc status=none
 
-set_sym "$imgfile" 0 "$mbrelf" beh 1 1
+## set_sym "$imgfile" 0 "$mbrelf" beh 1 1
+
+startsec="2048"
+psize="20M"
 
 # create partition table
-echo ',20M,,*' |
+echo "$startsec,$psize,,*" |
   "$sfdisk" --no-reread --no-tell-kernel --label dos -q "$imgfile"
+
+# copy boot block
+dd if="$loaderbin" of="$imgfile" bs=512 seek="$startsec" conv=notrunc \
+  status=none

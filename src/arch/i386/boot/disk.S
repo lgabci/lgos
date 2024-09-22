@@ -70,7 +70,7 @@ init_disk:
 9:      movw    $dskerr, %si    // on error
         jmp     halt
 
-/* read sector into memory
+/* read LBA sector into memory
    input: DX:AX = LBA of sector to read
           ES:BX = data buffer
    output:
@@ -127,7 +127,7 @@ read_sector:
         jc      2f
         ret
 2:
-        decw    %di             /* -- retry count */
+        decw    %di             /* retry count -- */
         jz      3f
 
         movb    $DISK_RESET, %ah  /* disk reset before read retry */

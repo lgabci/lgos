@@ -10,8 +10,8 @@ start:
 
 movw $0xb800, %ax
 movw %ax, %ds
-movb 'A, %al
-movb %al, 0
+movb $'*', 0
+movb $83, 1
 cli
 1:
 hlt
