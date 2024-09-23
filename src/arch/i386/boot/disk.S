@@ -1,5 +1,5 @@
 /* LGOS i386 boot disk asm file */
-.code16gcc
+.code16
 .arch i8086,nojumps
 
 .set DISK_INT, 0x13             // video interrupt
@@ -56,16 +56,11 @@ init_disk:
         incw    %ax
         movw    %ax, mcyl
 
-        ret
+        retw
 
-1:      movw    mcyl, %cx       // test if CHS is filled
-        jcxz    9f
-        movw    mhead, %cx
-        jcxz    9f
-        movw    msec, %cx
-        jcxz    9f
-
-        ret
+1:      movw    msec, %cx       // test if CHS is filled
+        jcxz    9f              // cyl and head can be 0
+        retw
 
 9:      movw    $dskerr, %si    // on error
         jmp     halt
@@ -125,7 +120,7 @@ read_sector:
         pop     %dx             /* BIOS bug */
 
         jc      2f
-        ret
+        retw
 2:
         decw    %di             /* retry count -- */
         jz      3f

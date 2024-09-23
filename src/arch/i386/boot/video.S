@@ -1,5 +1,5 @@
 /* LGOS i386 boot video asm file */
-.code16gcc
+.code16
 .arch i8086,nojumps
 
 .set VID_INT, 0x10              // video interrupt
@@ -19,7 +19,7 @@ init_video:
         movb    $VID_GETMODE, %ah
         int     $VID_INT
         movb    %bh, vpg
-        ret
+        retw
 
 /* teletype output
    input: AL = character to write
@@ -31,7 +31,7 @@ write_chr:
         movb    $VID_TTY, %ah
         movb    vpg, %bh
         int     $VID_INT
-        ret
+        retw
 
 /* print string
    input: SI = pointer to zero terminated string
@@ -43,8 +43,8 @@ write_str:
         lodsb
         orb     %al, %al
         jnz     1f
-        ret
-1:      call    write_chr
+        retw
+1:      callw   write_chr
         jmp     write_str
 
 .section .data

@@ -1,5 +1,5 @@
 /* LGOS i386 boot misc asm file */
-.code16gcc
+.code16
 .arch i8086,nojumps
 
 /* print error message and halt
@@ -9,7 +9,7 @@
 */
 .global halt
 halt:
-        call    write_str
+        callw   write_str
         cli
 1:      hlt
         jmp     1b

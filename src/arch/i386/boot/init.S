@@ -1,5 +1,5 @@
 /* LGOS i386 boot init asm file */
-.code16gcc
+.code16
 .arch i8086,nojumps
 
 .set BIN_SIZE, 0x200            // size of .text and .data
@@ -33,16 +33,16 @@ start:
         movw    $BIN_SIZE >> 1, %cx
 rep     movsw
 
-        ljmp    $COPY_SEG, $1f  // jump to new segment
+        ljmpw   $COPY_SEG, $1f  // jump to new segment
 
 .section .text
 1:
-        call    init_video
+        callw   init_video
         movw    $msgstr, %si
-        call    write_str
+        callw   write_str
 
         popw    %dx             // restore BIOS drive number
-        call    init_disk
+        callw   init_disk
 
         jmp     main            // start of program
 

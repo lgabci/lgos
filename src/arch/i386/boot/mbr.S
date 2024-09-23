@@ -1,5 +1,5 @@
 /* LGOS i386 boot init asm file */
-.code16gcc
+.code16
 .arch i8086,nojumps
 
 .set PARTTAB_START, 0x1be       // partition table start at this position
@@ -49,7 +49,7 @@ main:
 3:      movw    $BIOS_SEG, %bx  // chainload bootsector
         movw    %bx, %es
         xorw    %bx, %bx
-        call    read_sector
+        callw   read_sector
 
         popw    %si             // values pass to VBR
         movw    %si, %bp
