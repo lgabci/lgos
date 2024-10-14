@@ -8,7 +8,7 @@ error() {
   exit 1
 }
 
-if [ $# -ne 6 ]; then
+if [ $# -ne 8 ]; then
   echo "$basename: bad argument list" >&2
   echo "\t$@" >&2
   exit 1
@@ -18,8 +18,10 @@ imgfile="$1"
 imgsize="$2"
 mbrelf="$3"
 mbrbin="$4"
-loaderelf="$5"
-loaderbin="$6"
+bootelf="$5"
+bootbin="$6"
+loaderelf="$7"
+loaderbin="$8"
 
 startsec="2048"
 psize="20M"
@@ -84,5 +86,5 @@ echo "$startsec,$psize,,*" |
   "$sfdisk" --no-reread --no-tell-kernel --label dos -q "$imgfile"
 
 # copy boot block
-dd if="$loaderbin" of="$imgfile" bs=512 seek="$startsec" conv=notrunc \
+dd if="$bootbin" of="$imgfile" bs=512 seek="$startsec" conv=notrunc \
   status=none

@@ -1,6 +1,6 @@
 OUTPUT_ARCH(i386)
 OUTPUT_FORMAT(elf32-i386)
-ENTRY(start)
+ENTRY(jstart)
 
 PHDRS {
   text PT_LOAD;
@@ -10,12 +10,18 @@ PHDRS {
 }
 
 MEMORY {
-  ram  (rwx) : ORIGIN = 0x0,        LENGTH = 0x1b8
-  bsgn (r)   : ORIGIN = 0x1fe,      LENGTH = 0x2
+  jram (rwx) : ORIGIN = 0x0,        LENGTH = 0x3
+  bpb  (r)   : ORIGIN = 0x3,        LENGTH = 0x57
+  ram  (rwx) : ORIGIN = 0x5a,       LENGTH = 0x1a4
+  bsgn (r)   : ORIGIN = 0x1fe,      LENGTH = 0x02
   bss  (rw)  : ORIGIN = 0x200,      LENGTH = 0x200
 }
 
 SECTIONS {
+  .text : {
+    *(.jtext)
+  } >jram :text
+
   .text : {
     *(.itext)
     *(.text)

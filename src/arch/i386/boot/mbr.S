@@ -1,4 +1,4 @@
-/* LGOS i386 boot init asm file */
+/* LGOS i386 MBR asm file */
 .code16
 .arch i8086,nojumps
 
@@ -11,13 +11,12 @@
 
 .set BIOS_SEG, 0x07C0           // segment where MBR starts (0x0000:0x7C00)
 
+.set BOOTSGN, 0xaa55            // boot signature
+
 .section .text
 
 .global main
 main:
-        cmpb    $0, beh         // behavior, 0 = load active boot block
-        jne     load_ldr        //           else load loader
-
         movw    $PARTTAB_START, %si
         movw    $PARTENTRY_CNT, %cx
         xorw    %ax, %ax        // DX:AX = LBA of 1st sector of partition
@@ -37,19 +36,26 @@ main:
         loop    1b
 
         cmpw    $1, %di         // only 1 active partition
-        ja      4f
-        jb      4f
-
-        testw   %ax, %ax        // LBA start filled
-        jnz     3f
-        testw   %dx, %dx
-        jnz     3f
+        jne     6f
         jmp     4f
 
-3:      movw    $BIOS_SEG, %bx  // chainload bootsector
+3:                              // load loader
+
+
+4:
+        testw   %ax, %ax        // LBA start filled?
+        jnz     5f
+        testw   %dx, %dx
+        jnz     5f
+        jmp     6f
+
+5:      movw    $BIOS_SEG, %bx  // chainload bootsector
         movw    %bx, %es
         xorw    %bx, %bx
         callw   read_sector
+
+        cmpw    $BOOTSGN, %es:0x1fe
+        jne     7f
 
         popw    %si             // values pass to VBR
         movw    %si, %bp
@@ -61,16 +67,22 @@ main:
         cli
         movw    %ax, %ss
         movw    $BIOS_SEG << 4, %sp
+        sti
 
         ljmpw   $0, $BIOS_SEG << 4
 
-4:      movw    $invptb, %si    // on error
+6:      movw    $invptb, %si    // on error, invalid partition table
+        jmp     halt
+
+7:      movw    $invbs, %si     // on error, invalid boot sector
         jmp     halt
 
 .section .data
 
-beh:    .byte 0                 // behavior: 0 = original MBR, else loader
+ldrlba: .long 0                 // starting LBA of loader
+ldrlen: .word 0                 // length of loader in 512 byte sectors
 
 .global msgstr
 msgstr: .string "LGOS MBR\r\n"  // message
-invptb: .string "Invalid partition table."
+invptb: .string "Invalid part table."
+invbs:  .string "Invalid boot sector."

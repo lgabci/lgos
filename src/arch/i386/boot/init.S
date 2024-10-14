@@ -9,6 +9,15 @@
 
 .set STACK_SIZE, 0x100          // stack size in bytes
 
+.ifdef FAT
+.section .jtext, "ax", @progbits  // init jump .text section
+.global jstart
+jstart:
+//        .byte   0xeb, start - . - 1     // short jump to start
+        jmp     start
+        nop
+.endif
+
 .section .itext, "ax", @progbits  // init .text section
 
 .global start
@@ -20,11 +29,13 @@ start:
         movw    $stkend, %sp
         sti
 
+.ifdef MBR
         pushw   %dx             // save values need to pass to VBR
         pushw   %di
         pushw   %es
 
         pushw   %dx             // save BIOS boot drive number
+.endif
 
         movw    %ax, %ds        // copy code to 0x0600:0x0000
         movw    %ax, %es
