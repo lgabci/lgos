@@ -13,16 +13,17 @@
 .section .jtext, "ax", @progbits  // init jump .text section
 .global jstart
 jstart:
-//        .byte   0xeb, start - . - 1     // short jump to start
-        jmp     start
-        nop
+        cli
+        .byte   0xeb, start - . - 1  // short jump to start
 .endif
 
 .section .itext, "ax", @progbits  // init .text section
 
 .global start
 start:
+.ifndef FAT
         cli                     // set stack
+.endif
         cld                     // ABI
         movw    $COPY_SEG, %ax
         movw    %ax, %ss
@@ -33,9 +34,9 @@ start:
         pushw   %dx             // save values need to pass to VBR
         pushw   %di
         pushw   %es
+.endif
 
         pushw   %dx             // save BIOS boot drive number
-.endif
 
         movw    %ax, %ds        // copy code to 0x0600:0x0000
         movw    %ax, %es

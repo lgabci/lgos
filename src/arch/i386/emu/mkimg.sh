@@ -3,25 +3,37 @@ set -eu
 
 basename=$(basename $0)
 
+# print error message and exit with 1 exit status
 error() {
   echo "$basename: $1" >&2
   exit 1
 }
 
-if [ $# -ne 8 ]; then
+# find executable file, throws error if not found
+findex() {
+  local fname="${1:-}"
+  [ -n "$fname" ] || error "findex: empty filename."
+  local ret=$(whereis -b "$fname" | awk '{print $2}')
+  [ -n "$ret" ] || error "findex: $fname not found."
+  echo "$ret"
+}
+
+
+if [ $# -ne 9 ]; then
   echo "$basename: bad argument list" >&2
   echo "\t$@" >&2
   exit 1
 fi
 
 imgfile="$1"
-imgsize="$2"
-mbrelf="$3"
-mbrbin="$4"
-bootelf="$5"
-bootbin="$6"
-loaderelf="$7"
-loaderbin="$8"
+fstype="$2"
+imgsize="$3"
+mbrelf="$4"
+mbrbin="$5"
+bootelf="$6"
+bootbin="$7"
+loaderelf="$8"
+loaderbin="$9"
 
 startsec="2048"
 psize="20M"
@@ -79,12 +91,49 @@ dd if="$mbrbin" of="$imgfile" bs=512 conv=notrunc status=none
 ## set_sym "$imgfile" 0 "$mbrelf" beh 1 1
 
 startsec="2048"
-psize="20M"
+psize="20480"
+secsize="512"
 
 # create partition table
 echo "$startsec,$psize,,*" |
   "$sfdisk" --no-reread --no-tell-kernel --label dos -q "$imgfile"
 
+# create filesystem
+case "$fstype" in
+  FAT)
+    mkfs=$(findex mkfs.fat)
+    "$mkfs" --offset "$startsec" "$imgfile" $((psize / 2))
+    ;;
+  Ext2)
+    mkfs=$(findex mkfs.ext2)
+    "$mkfs" -E offset=$((startsec * secsize)) "$imgfile" $((psize / 2))k
+    ;;
+  *)
+    error "Bad FS type: \"$fstype\"."
+    ;;
+esac
+
 # copy boot block
-dd if="$bootbin" of="$imgfile" bs=512 seek="$startsec" conv=notrunc \
-  status=none
+i386-elf-readelf -S "$bootelf" | \
+  awk '{
+         if ($0 ~ /^ *\[ *[[:digit:]]+\]/) {
+           sub(/\[ *[[:digit:]]+\]/,"",$0);
+           if ($2 == "PROGBITS") {
+             print $3 " " $5
+           }
+         }
+       }' | \
+  while read seek count; do
+    dd if="$bootbin" of="$imgfile" bs=1 \
+      seek=$((startsec * secsize + 0x$seek)) \
+      skip=$((0x$seek)) count=$((0x$count)) \
+      iflag=fullblock conv=notrunc status=none
+  done
+
+# copy loader to filesystem
+
+
+
+# set loader start sector and length
+set_sym "$imgfile" $((startsec * secsize)) "$bootelf" ldrlba 8 $((65536 + 512))
+set_sym "$imgfile" $((startsec * secsize)) "$bootelf" ldrlen 2 257

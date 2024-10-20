@@ -11,26 +11,30 @@ PHDRS {
 
 MEMORY {
   jram (rwx) : ORIGIN = 0x0,        LENGTH = 0x3
-  bpb  (r)   : ORIGIN = 0x3,        LENGTH = 0x57
   ram  (rwx) : ORIGIN = 0x5a,       LENGTH = 0x1a4
   bsgn (r)   : ORIGIN = 0x1fe,      LENGTH = 0x02
   bss  (rw)  : ORIGIN = 0x200,      LENGTH = 0x200
 }
 
 SECTIONS {
-  .text : {
+  __start = .;
+  __text_start = .;
+
+  .text : ALIGN(1) {
     *(.jtext)
   } >jram :text
 
-  .text : {
+  .text : ALIGN(1) {
     *(.itext)
     *(.text)
   } >ram :text
 
-  . = ALIGN (CONSTANT (COMMONPAGESIZE));
+  __text_end = .;
+  __data_start = .;
 
   .data : ALIGN(1) {
     *(.data)
+    . = 0x1fe - __data_start;
   } >ram :data
 
   .bootsign : {
@@ -38,7 +42,13 @@ SECTIONS {
     BYTE(0xaa)
   } >bsgn :bsgn
 
-  .bss : {
+  __data_end = .;
+  __bss_start = .;
+
+  .bss : ALIGN(1) {
     *(.bss)
   } >bss :bss
+
+  __bss_end = .;
+  __end = .;
 }

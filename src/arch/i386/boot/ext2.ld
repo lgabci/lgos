@@ -1,6 +1,5 @@
 OUTPUT_ARCH(i386)
 OUTPUT_FORMAT(elf32-i386)
-ENTRY(start)
 
 PHDRS {
   text PT_LOAD;
@@ -10,8 +9,8 @@ PHDRS {
 }
 
 MEMORY {
-  ram  (rwx) : ORIGIN = 0x0,        LENGTH = 0x1b8
-  bsgn (r)   : ORIGIN = 0x1fe,      LENGTH = 0x2
+  ram  (rwx) : ORIGIN = 0x0,        LENGTH = 0x1fe
+  bsgn (r)   : ORIGIN = 0x1fe,      LENGTH = 0x02
   bss  (rw)  : ORIGIN = 0x200,      LENGTH = 0x200
 }
 
@@ -19,7 +18,7 @@ SECTIONS {
   __start = .;
   __text_start = .;
 
-  .text : {
+  .text : ALIGN(1) {
     *(.itext)
     *(.text)
   } >ram :text
@@ -29,6 +28,7 @@ SECTIONS {
 
   .data : ALIGN(1) {
     *(.data)
+    . = 0x1fe - __data_start;
   } >ram :data
 
   .bootsign : {
@@ -39,7 +39,7 @@ SECTIONS {
   __data_end = .;
   __bss_start = .;
 
-  .bss : {
+  .bss : ALIGN(1) {
     *(.bss)
   } >bss :bss
 

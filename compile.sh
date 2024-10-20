@@ -3,7 +3,7 @@ set -eu
 
 srcdir="$HOME/projects/lgos"
 blddir="/tmp/lgos"
-arch=${ARCH:-$(arch)}
+arch=${ARCH:-i386}
 
 case "${1:-}" in
   clean)
@@ -14,13 +14,5 @@ case "${1:-}" in
       meson setup --cross-file "$srcdir/src/arch/$arch/meson-cross.txt" \
             "$srcdir" "$blddir"
     fi
-    case "${1:-}" in
-      "")
-      meson compile -C "$blddir"
-      ;;
-    *)
-      meson compile -C "$blddir" "$1"
-      ;;
-    esac
-  ;;
+    meson compile -C "$blddir" $@
 esac

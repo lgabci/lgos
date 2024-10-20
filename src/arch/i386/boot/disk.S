@@ -69,7 +69,7 @@ init_disk:
    input: DX:AX = LBA of sector to read
           ES:BX = data buffer
    output:
-   modified:
+   modified: AX, CX, DX, SI, DI, flags
 */
 .global read_sector
 read_sector:
