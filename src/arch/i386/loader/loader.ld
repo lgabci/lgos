@@ -9,8 +9,7 @@ PHDRS {
 }
 
 MEMORY {
-  ram  (rwx) : ORIGIN = 0,          LENGTH = 0x400
-  bss  (rw)  : ORIGIN = 0x400,      LENGTH = 0x200
+  ram  (rwx) : ORIGIN = 0,          LENGTH = 0x10000
 }
 
 SECTIONS {
@@ -27,5 +26,5 @@ SECTIONS {
 
   .bss : {
     *(.bss)
-  } >bss :bss
+  } >ram :bss
 }

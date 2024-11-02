@@ -44,5 +44,6 @@ SECTIONS {
   } >bss :bss
 
   __bss_end = .;
+  . = ALIGN(0x200);
   __end = .;
 }
