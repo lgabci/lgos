@@ -22,6 +22,7 @@ SECTIONS {
 
   .data : ALIGN(1) {
     *(.data)
+    *(.rodata)
   } >ram :data
 
   .bss : {

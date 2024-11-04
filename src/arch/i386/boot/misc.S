@@ -10,6 +10,5 @@
 .global halt
 halt:
         callw   write_str
-        cli
 1:      hlt
         jmp     1b
