@@ -41,7 +41,9 @@ start:
 
 1:      xorb    %bh, %bh        // BIOS bug
         movb    $VID_GETMODE, %ah
+        pushw   %bp             // BIOS bug
         int     $VID_INT        // get active video page into BH
+        popw    %bp
 
         movw    $i386e, %si     // video TTY output
         movb    $VID_TTY, %ah

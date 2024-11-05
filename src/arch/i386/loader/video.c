@@ -163,16 +163,34 @@ void print(const char *chr) {
   }
 }
 
+/* %[flags][width][length]specifier
+   flags:
+     0: pad with zeros instead of spaces
+   width: minimum length os number in characters
+   length:
+     hh: char
+     h : short int
+     l : long int
+     ll: long long int
+   specifier:
+     d, i: signed decimal integer
+     u:    unsigned decimal integer
+     o:    unsigned octal
+     x, X: unsigned hexadecimal
+     c:    character
+     s:    string
+     C:    color, background and foreground in a char
+*/
 void printf(const char *format, ...) {
-  int zerofill;
-  int width;
-  int len;
+  unsigned int zeropad;
+  unsigned int width;
+  unsigned int len;
 
   va_list args;
   va_start(args, format);
 
   while (*format) {
-    zerofill = 0;
+    zeropad = 0;
     width = 0;
     len = 4;
 
@@ -185,12 +203,12 @@ void printf(const char *format, ...) {
             break;
           default:
             if (*format == '0') {       // flags
-              zerofill = 1;
+              zeropad = 1;
               format ++;
             }
 
             while (*format >= '0' && *format <= '9') {  // width
-              width = width * 10 + *format - '0';
+              width = width * 10 + (unsigned int)(*format - '0');
               format ++;
             }
 
@@ -221,65 +239,94 @@ void printf(const char *format, ...) {
               case 'u':
               case 'o':
               case 'x':
-              case 'X': ;
-                char buf[20];
-                unsigned int prefix;
+              case 'X':
+                {
+                  char buf[20];
+                  unsigned int prefix;
 
-                switch (*format) {
-                  case 'o':
-                    prefix = 8;
-                    break;
-                  case 'x':
-                  case 'X': ;
-                    prefix = 16;
-                    break;
-                  default:
-                    prefix = 10;
-                    break;
+                  switch (*format) {
+                    case 'o':
+                      prefix = 8;
+                      break;
+                    case 'x':
+                    case 'X':
+                      prefix = 16;
+                      break;
+                    default:
+                      prefix = 10;
+                      break;
+                  }
+
+                  switch (len) {
+                    case 1:
+                      {
+                        unsigned char c;
+                        c = (unsigned char)va_arg(args, unsigned int);
+                        ltoa(c, buf, prefix);
+                      }
+                      break;
+                    case 2:
+                      {
+                        unsigned int i;
+                        i = va_arg(args, unsigned int);
+                        ltoa(i, buf, prefix);
+                      }
+                      break;
+                    case 4:
+                      {
+                        unsigned long int l;
+                        l = va_arg(args, unsigned long int);
+                        ltoa(l, buf, prefix);
+                      }
+                      break;
+                    case 8:
+                      {
+                        unsigned long long int ll;
+                        ll = va_arg(args, unsigned long long int);
+                        ltoa((unsigned long int)ll, buf, prefix);
+                      }
+                      break;
+                    default:
+                      break;
+                  }
+
+                  unsigned int lb = strlen(buf);
+                  if (width > lb) {
+                    width = (unsigned int)(width - lb);
+                    while (width --) {
+                      print_chr(zeropad ? '0' : ' ');
+                    }
+                  }
+                  print(buf);
+
+                  if (zeropad) { };
+
+                  format ++;
                 }
-
-                switch (len) {
-                  case 1: ;
-                    unsigned char c;
-                    c = (unsigned char)va_arg(args, unsigned int);
-                    ltoa(c, buf, prefix);
-                    break;
-                  case 2: ;
-                    unsigned int i;
-                    i = va_arg(args, unsigned int);
-                    ltoa(i, buf, prefix);
-                    break;
-                  case 4: ;
-                    unsigned long int l;
-                    l = va_arg(args, unsigned long int);
-                    ltoa(l, buf, prefix);
-                    break;
-                  case 8: ;
-                    unsigned long long int ll;
-                    ll = va_arg(args, unsigned long long int);
-                    ltoa((unsigned long int)ll, buf, prefix);
-                    break;
-                  default:
-                    break;
+                break;
+              case 'c':
+                {
+                  char c;
+                  c = (char)va_arg(args, int);
+                  print_chr(c);
+                  format ++;
                 }
-
-                print(buf);
-
-                if (zerofill) { };
-
-                format ++;
                 break;
-              case 'c': ;
-                char c;
-                c = (char)va_arg(args, int);
-                print_chr(c);
-                format ++;
+              case 's':
+                {
+                  char *s;
+                  s = va_arg(args, char *);
+                  print(s);
+                  format ++;
+                }
                 break;
-              case 's': ;
-                char *s;
-                s = va_arg(args, char *);
-                print(s);
-                format ++;
+              case 'C':
+                {
+                  unsigned char c;
+                  c = (unsigned char)va_arg(args, int);
+                  setcolor(c >> 4 & 0x07, c & 0x0f);
+                  format ++;
+                }
                 break;
               default:
                 break;
