@@ -1,7 +1,7 @@
 # LGOS i386/loader meson.build file
 
 loader_elf = executable('loader.elf',
-                        ['init.S', 'main.c', 'video.c', 'misc.c'],
+                        ['init.S', 'main.c', 'video.c', 'misc.c', 'disk.c'],
                         c_args: ['-m16', '-O3'],
                         link_args: ['-T',
                                     meson.current_source_dir() + '/loader.ld'],

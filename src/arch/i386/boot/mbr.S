@@ -83,6 +83,6 @@ ldrlba: .long 0                 // starting LBA of loader
 ldrlen: .word 0                 // length of loader in 512 byte sectors
 
 .global msgstr
-msgstr: .string "LGOS MBR\r\n"  // message
+msgstr: .string "LGOS MBR.\r\n"  // message
 invptb: .string "Invalid part table."
 invbs:  .string "Invalid boot sector."

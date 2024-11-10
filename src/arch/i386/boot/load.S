@@ -5,6 +5,8 @@
 .set LDRSEG, 0x07c0             // loader segment
 .set SECSIZE, 0x200             // sector size
 
+.set MAXBLKLEN, 128             // max block list size, 512 / 4
+
 .section .text
 
 .global main
@@ -22,10 +24,13 @@ main:
 
         movw    ldrlen, %cx     // read blocks to 0x07C0:0000
         jcxz    2f
+        testw   $MAXBLKLEN, %cx
+        ja      2f
+
         movw    $LDRSEG, %ax
         movw    %ax, %es
         xorw    %bx, %bx
-        popw    %si
+        popw    %si             // pushw %bx
 
 1:      lodsw                   // load next block LBA address
         xchgw   %dx, %ax
@@ -50,13 +55,13 @@ main:
 
 .global msgstr
 .ifdef FAT
-msgstr: .string "LGOS FAT\r\n"  // message
+msgstr: .string "LGOS FAT.\r\n"  // message
 .endif
 .ifdef EXT2
-msgstr: .string "LGOS Ext2\r\n"  // message
+msgstr: .string "LGOS Ext2.\r\n"  // message
 .endif
 
-blkinv: .string "Invalid blocklist\r\n" // invalid blocklist
+blkinv: .string "Invalid blocklist.\r\n" // invalid blocklist
 
 ldrlba: .int 0                  // starting LBA sector of loader
 ldrlen: .word 0                 // size of loader in 512 byte sectors
