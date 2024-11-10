@@ -341,7 +341,7 @@ case "$disktype" in
         mhead=2
         msec=9
         ;;
-      1.2M)
+      1200K)
         mcyl=80
         mhead=2
         msec=15
@@ -351,7 +351,7 @@ case "$disktype" in
         mhead=2
         msec=9
         ;;
-      1.44M)
+      1440K)
         mcyl=80
         mhead=2
         msec=18
