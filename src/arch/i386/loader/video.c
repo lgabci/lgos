@@ -4,24 +4,24 @@
 #include "video.h"
 #include "misc.h"
 
-#define VID_INT         0x10    // video interrupt
-#define VID_GETCURPOS   0x03    // get cursor position
-#define VID_SETCURPOS   0x02    // set cursor position
-#define VID_SCROLLUP    0x06    // scroll up window
-#define VID_WRTCHR      0x09    // write char and attribute
-#define VID_GETMODE     0x0f    // get video mode and active page
+#define VID_INT         0x10    /* video interrupt */
+#define VID_GETCURPOS   0x03    /* get cursor position */
+#define VID_SETCURPOS   0x02    /* set cursor position */
+#define VID_SCROLLUP    0x06    /* scroll up window */
+#define VID_WRTCHR      0x09    /* write char and attribute */
+#define VID_GETMODE     0x0f    /* get video mode and active page */
 
-static unsigned char vidpage;   // current video page
-static unsigned char color;     // current video color
+static uint8_t vidpage;         /* current video page */
+static uint8_t color;           /* current video color */
 
-static unsigned char maxcol;    // max number of columns, 0 based
-static unsigned char maxrow;    // max number of rows, 0 based
-static unsigned char col;       // actual column, 0 based
-static unsigned char row;       // actual row, 0 based
+static uint8_t maxcol;          /* max number of columns, 0 based */
+static uint8_t maxrow;          /* max number of rows, 0 based */
+static uint8_t col;             /* actual column, 0 based */
+static uint8_t row;             /* actual row, 0 based */
 
 void get_curpos(void);
 void set_curpos(void);
-void scrollup(unsigned char rows);
+void scrollup(uint8_t rows);
 
 void init_video(void) {
   __asm__ __volatile__ (
@@ -75,7 +75,7 @@ void set_curpos(void) {
   );
 }
 
-void scrollup(unsigned char rows) {
+void scrollup(uint8_t rows) {
   __asm__ __volatile__ (
         "movb   %[vid_scrollup], %%ah\n"
         "movb   %[rows], %%al\n"
@@ -97,15 +97,15 @@ void scrollup(unsigned char rows) {
   );
 }
 
-void setcolor(unsigned char bg, unsigned char fg) {
+void setcolor(uint8_t bg, uint8_t fg) {
   color = (unsigned char)((bg & 0x07) << 4 | fg);
 }
 
-void setcolorf(unsigned char fg) {
+void setcolorf(uint8_t fg) {
   color = (color & 0x70) | fg;
 }
 
-void locate(unsigned char r, unsigned char c) {
+void locate(uint8_t r, uint8_t c) {
   if (r <= maxrow && c <= maxcol) {
     row = r;
     col = c;
@@ -127,19 +127,19 @@ void print_chr(const char chr) {
       break;
     default:
     __asm__ __volatile__ (
-          "movb   %[vid_wrtchr], %%ah\n"
-          "movb   %[chr], %%al\n"
-          "movb   %[vidpage], %%bh\n"
-          "movb   %[color], %%bl\n"
-          "movw   $1, %%cx\n"
-          "int    %[vid_int]\n"
-          :
-          : [vid_wrtchr] "i" (VID_WRTCHR),
-            [chr]        "m" (chr),
-            [vidpage]    "m" (vidpage),
-            [color]      "m" (color),
-            [vid_int]    "i" (VID_INT)
-          : "ax", "bx", "cx"
+        "movb   %[vid_wrtchr], %%ah\n"
+        "movb   %[chr], %%al\n"
+        "movb   %[vidpage], %%bh\n"
+        "movb   %[color], %%bl\n"
+        "movw   $1, %%cx\n"
+        "int    %[vid_int]\n"
+        :
+        : [vid_wrtchr] "i" (VID_WRTCHR),
+          [chr]        "m" (chr),
+          [vidpage]    "m" (vidpage),
+          [color]      "m" (color),
+          [vid_int]    "i" (VID_INT)
+        : "ax", "bx", "cx"
     );
     col ++;
     break;
@@ -182,12 +182,17 @@ void print(const char *chr) {
      C:    color, background and foreground in a char
 */
 void printf(const char *format, ...) {
-  unsigned int zeropad;
-  unsigned int width;
-  unsigned int len;
-
   va_list args;
+
   va_start(args, format);
+  vprintf(format, args);
+  va_end(args);
+}
+
+void vprintf(const char *format, va_list args) {
+  int zeropad;
+  int width;
+  int len;
 
   while (*format) {
     zeropad = 0;
@@ -202,17 +207,17 @@ void printf(const char *format, ...) {
             print_chr(*format ++);
             break;
           default:
-            if (*format == '0') {       // flags
+            if (*format == '0') {       /* flags */
               zeropad = 1;
               format ++;
             }
 
-            while (*format >= '0' && *format <= '9') {  // width
-              width = width * 10 + (unsigned int)(*format - '0');
+            while (*format >= '0' && *format <= '9') {  /* width */
+              width = width * 10 + *format - '0';
               format ++;
             }
 
-            switch (*format) {          // length
+            switch (*format) {          /* length */
               case 'h':
                 len = 2;
                 format ++;
@@ -233,7 +238,7 @@ void printf(const char *format, ...) {
               ;
             }
 
-            switch (*format) {          // specifier
+            switch (*format) {          /* specifier */
               case 'd':
               case 'i':
               case 'u':
@@ -260,29 +265,29 @@ void printf(const char *format, ...) {
                   switch (len) {
                     case 1:
                       {
-                        unsigned char c;
-                        c = (unsigned char)va_arg(args, unsigned int);
+                        uint8_t c;
+                        c = (uint8_t)va_arg(args, int);
                         ltoa(c, buf, prefix);
                       }
                       break;
                     case 2:
                       {
-                        unsigned int i;
-                        i = va_arg(args, unsigned int);
+                        uint16_t i;
+                        i = (uint16_t)va_arg(args, int);
                         ltoa(i, buf, prefix);
                       }
                       break;
                     case 4:
                       {
-                        unsigned long int l;
-                        l = va_arg(args, unsigned long int);
+                        uint32_t l;
+                        l = va_arg(args, uint32_t);
                         ltoa(l, buf, prefix);
                       }
                       break;
                     case 8:
                       {
-                        unsigned long long int ll;
-                        ll = va_arg(args, unsigned long long int);
+                        uint64_t ll;
+                        ll = va_arg(args, uint64_t);
                         ltoa((unsigned long int)ll, buf, prefix);
                       }
                       break;
@@ -290,16 +295,14 @@ void printf(const char *format, ...) {
                       break;
                   }
 
-                  unsigned int lb = strlen(buf);
+                  int lb = strlen(buf);
                   if (width > lb) {
-                    width = (unsigned int)(width - lb);
+                    width = width - lb;
                     while (width --) {
                       print_chr(zeropad ? '0' : ' ');
                     }
                   }
                   print(buf);
-
-                  if (zeropad) { };
 
                   format ++;
                 }
@@ -340,5 +343,4 @@ void printf(const char *format, ...) {
         break;
     }
   }
-  va_end(args);
 }

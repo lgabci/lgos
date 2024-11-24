@@ -1,11 +1,14 @@
 /* LGOS i386 loader misc header file */
 
-#ifndef __misc_h__
-#define __misc_h__
+#ifndef _misc_h
+#define _misc_h
 
-void halt(void) __attribute__ ((noreturn));
-char *ltoa(unsigned long int val, char *buf, unsigned int radix);
-unsigned long int atol(const char *buf) __attribute__ ((pure));
-unsigned long int strlen(const char *s) __attribute__ ((pure));
+#include <stdint.h>
+
+void halt(const char *msg, ...) __attribute__ ((noreturn));
+
+char *ltoa(uint32_t val, char *buf, unsigned int radix);
+uint32_t atol(const char *buf) __attribute__ ((pure));
+int strlen(const char *s) __attribute__ ((pure));
 
 #endif

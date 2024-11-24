@@ -1,8 +1,16 @@
 /* LGOS i386 loader misc C file */
 
 #include "misc.h"
+#include "video.h"
 
-void halt(void) {
+void halt(const char *msg, ...) {
+  va_list args;
+
+  va_start(args, msg);
+  setcolor(CLR_BLACK, CLR_RED);
+  vprintf(msg, args);
+  va_end(args);
+
   while (1) {
     __asm__ __volatile__ (
         "hlt"
@@ -10,7 +18,7 @@ void halt(void) {
   }
 }
 
-char *ltoa(unsigned long int val, char *buf, unsigned int radix) {
+char *ltoa(uint32_t val, char *buf, unsigned int radix) {
   int i;
   int j;
 
@@ -32,8 +40,8 @@ char *ltoa(unsigned long int val, char *buf, unsigned int radix) {
   return buf;
 }
 
-unsigned long int atol(const char *buf) {
-  unsigned long int i = 0;
+uint32_t atol(const char *buf) {
+  uint32_t i = 0;
 
   for ( ; *buf == ' '; buf ++) ;
   for ( ; *buf >= '0' && *buf <= '9'; buf ++) {
@@ -43,8 +51,8 @@ unsigned long int atol(const char *buf) {
   return i;
 }
 
-unsigned long int strlen(const char *s) {
-  unsigned long int i;
+int strlen(const char *s) {
+  int i;
 
   for(i = 0; s[i]; i ++) ;
   return i;

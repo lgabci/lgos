@@ -181,8 +181,10 @@ exitfv () {
     fi
   fi
   [ -n "$rmfiles" ] && rm -f "$rmfiles"
+
+  trap - EXIT INT
 }
-trap exitfv EXIT
+trap exitfv EXIT INT
 
 if [ $# -ne 10 ]; then
   echo "$basename: bad argument list" >&2

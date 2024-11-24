@@ -24,7 +24,6 @@ start:
         movw    %ax, %ds
         movw    %ax, %es
 
-
         pushfw                  // test 80386 CPU
         popw    %ax             // allows setting of Flags bits 12-14
         movw    %ax, %dx        // dont allows setting of Flags bit 15
@@ -50,12 +49,12 @@ start:
 
 2:      lodsb                   // print error message
         testb   %al, %al
-        jz      halt
+        jz      3f
         int     $VID_INT
         jmp     2b
 
-halt:   hlt
-        jmp 2b
+3:      hlt
+        jmp 3b
 
 .section .data
 i386e:  .string "LGOS loader requires minimum 80386 CPU."

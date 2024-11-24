@@ -2,7 +2,7 @@
 .code16
 .arch i8086,nojumps
 
-.set DISK_INT, 0x13             // video interrupt
+.set DISK_INT, 0x13             // disk interrupt
 .set DISK_RESET, 0x00           // reset disk system
 .set DISK_GETST, 0x01           // get status of last operation
 .set DISK_READSEC, 0x02         // read sectors
@@ -59,7 +59,7 @@ init_disk:
         retw
 
 1:      movw    msec, %cx       // test if CHS is filled
-        jcxz    9f              // cyl and head can be 0
+        jcxz    9f              // cyl and head can be 0, but sector can not
         retw
 
 9:      movw    $dskerr, %si    // on error

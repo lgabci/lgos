@@ -1,7 +1,9 @@
 /* LGOS i386 loader video header file */
 
-#ifndef __video_h__
-#define __video_h__
+#ifndef _video_h
+#define _video_h
+
+#include <stdint.h>
 
 #define CLR_BLACK       0x00    /* text mode colors */
 #define CLR_BLUE        0x01
@@ -20,13 +22,15 @@
 #define CLR_YELLOW      0x0e
 #define CLR_WHITE       0x0f
 
+#include <stdarg.h>
 
 void init_video(void);
 void print_chr(const char chr);
-void setcolor(unsigned char bg, unsigned char fg);
-void setcolorf(unsigned char fg);
-void locate(unsigned char r, unsigned char c);
+void setcolor(uint8_t bg, uint8_t fg);
+void setcolorf(uint8_t fg);
+void locate(uint8_t r, uint8_t c);
 void print(const char *chr);
 void printf(const char *format, ...);
+void vprintf(const char *format, va_list args);
 
 #endif
