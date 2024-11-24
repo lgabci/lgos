@@ -54,18 +54,18 @@ struct s_dpa {                  /* disk address packet for ext int13 read */
   uint8_t size;                 /* size of packet */
   uint8_t zero;                 /* reserved byte = 0 */
   uint16_t cnt;                 /* number of blocks to transfer */
-  uintptr_t offs;               /* pointer to buffer, offset */
+  uint16_t offs;                /* pointer to buffer, offset */
   uint16_t seg;                 /* pointer to buffer, seg */
   uint64_t lba;                 /* LBA address of 1st sector to read */
-} __attribute__ ((packed));
+};
 
 static int floppy_detect(uint8_t drive);
 static void init_drive(uint8_t drive);
 static void readsec_chs(uint8_t drive, uint16_t cyl, uint8_t head,
-                        uint8_t sec, uint16_t seg, uintptr_t offs);
+                        uint8_t sec, uint16_t seg, uint16_t offs);
 static void readsec_lba(uint8_t drive, uint32_t lba, uint16_t seg,
-                        uintptr_t offs);
-static uintptr_t readsec_cache(uint8_t drive, uint32_t lba);
+                        uint16_t offs);
+static uint16_t readsec_cache(uint8_t drive, uint32_t lba);
 
 void init_disk(void) {
   uint16_t ds;
@@ -83,7 +83,6 @@ void init_disk(void) {
         : [ds] "=m" (ds)
   );
   cacheseg = (uint16_t)(ds + 0x1000);
-  printf("ds = %04hx, cacheseg = %04hx\n", ds, cacheseg);  ///
 
   for (int i = 0; i < CACHESZ; i ++) {
     a_cache[i].drive = 0;
@@ -226,7 +225,7 @@ static void init_drive(uint8_t drive) {
 }
 
 static void readsec_chs(uint8_t drive, uint16_t cyl, uint8_t head,
-                        uint8_t sec, uint16_t seg, uintptr_t offs) {
+                        uint8_t sec, uint16_t seg, uint16_t offs) {
   uint16_t cylw;
   uint8_t  cf;
   uint8_t  stat;
@@ -292,7 +291,7 @@ static void readsec_chs(uint8_t drive, uint16_t cyl, uint8_t head,
 }
 
 static void readsec_lba(uint8_t drive, uint32_t lba, uint16_t seg,
-                        uintptr_t offs) {
+                        uint16_t offs) {
   uint8_t  cf;
   uint8_t  stat;
   struct s_dpa dpa;
@@ -303,7 +302,6 @@ static void readsec_lba(uint8_t drive, uint32_t lba, uint16_t seg,
   dpa.seg = seg;
   dpa.offs = offs;
   dpa.lba = lba;
-printf("dpa.seg = %x, dpa.offs = %x\n", dpa.seg, dpa.offs);  ///
 
   __asm__ __volatile__ (      /* read 1 sector */
         "movb   %[disk_extread], %%ah           \n"
@@ -326,13 +324,13 @@ printf("dpa.seg = %x, dpa.offs = %x\n", dpa.seg, dpa.offs);  ///
   }
 }
 
-static uintptr_t readsec_cache(uint8_t drive, uint32_t lba) {
+static uint16_t readsec_cache(uint8_t drive, uint32_t lba) {
   int idx;
-  uintptr_t p;
+  uint16_t p;
 
   for (int i = 0; i < CACHESZ; i ++) {  /* search in cache */
     if (a_cache[i].drive == drive && a_cache[i].flag) {
-      p = (uintptr_t)(idx * SECSZ);
+      p = (uint16_t)(idx * SECSZ);
       return p;                 /* cache hit       */
     }
   }
@@ -349,7 +347,7 @@ static uintptr_t readsec_cache(uint8_t drive, uint32_t lba) {
       }
     }
   }
-  p = (uintptr_t)(idx * SECSZ);
+  p = (uint16_t)(idx * SECSZ);
 
 
   int drvidx;
@@ -362,9 +360,6 @@ static uintptr_t readsec_cache(uint8_t drive, uint32_t lba) {
   }
 
   if (a_diskgeo[drvidx].lba) {     /* LBA read */
-cacheseg = 0x0010;                                              ///
-p = (uintptr_t)0x3000;                                          ///
-printf("cacheseg = 0x%04h%x, p = 0x%04h%x\n", cacheseg, p);     ///
     readsec_lba(drive, lba, cacheseg, p);
   }
   else {                        /* CHS read */
