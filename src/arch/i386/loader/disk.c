@@ -153,6 +153,7 @@ static void init_drive(uint8_t drive) {
       __asm__ __volatile__ (      /* get disk parameters */
         "movb   %[disk_getprm], %%ah            \n"
         "movb   %[drive], %%dl                  \n"
+        "xorw   %%cx, %%cx                      \n"
         "pushw  %%es                            \n"
         "int    %[disk_int]                     \n"
         "popw   %%es                            \n"
@@ -176,7 +177,7 @@ static void init_drive(uint8_t drive) {
         : "ax", "bl", "cx", "dx", "di", "cc"
       );
 
-      if (cf) {
+      if (cf && (cx & 0x3f) > 0) {
         halt("Can not initialize disk 0x%02hhx.", drive);
       }
 
@@ -368,6 +369,9 @@ static uint16_t readsec_cache(uint8_t drive, uint32_t lba) {
     uint8_t sec;
 
     cyl = (uint16_t)(lba / a_diskgeo[drvidx].secs / a_diskgeo[drvidx].heads);
+    if (cyl > a_diskgeo[drvidx].cyls) {
+      halt("Geom error on disk %02hhx.\n", drive);
+    }
     head = (uint8_t)(lba / a_diskgeo[drvidx].secs % a_diskgeo[drvidx].heads);
     sec = (uint8_t)(lba % a_diskgeo[drvidx].secs + 1);
     readsec_chs(drive, cyl, head, sec, cacheseg, p);
