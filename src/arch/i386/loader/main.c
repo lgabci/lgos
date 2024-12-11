@@ -6,11 +6,13 @@
 #include "misc.h"
 #include "disk.h"
 
+extern void *BSS_START;
+extern void *BSS_END;
+
 void main(void) __attribute__ ((noreturn));
 
 void main(void) {
   init_video();
-
   setcolor(CLR_BLACK, CLR_WHITE);
   printf("LGOS Loader.\n");
 

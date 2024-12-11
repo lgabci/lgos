@@ -24,6 +24,11 @@ start:
         movw    %ax, %ds
         movw    %ax, %es
 
+        movw    $BSS_START, %di // zero fill bss
+        movw    $BSS_SIZE, %cx
+        xorw    %ax, %ax
+rep     stosb
+
         pushfw                  // test 80386 CPU
         popw    %ax             // allows setting of Flags bits 12-14
         movw    %ax, %dx        // dont allows setting of Flags bit 15

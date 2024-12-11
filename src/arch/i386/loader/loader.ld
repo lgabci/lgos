@@ -26,6 +26,9 @@ SECTIONS {
   } >ram :data
 
   .bss : {
+    BSS_START = .;
     *(.bss)
+    BSS_END = .;
   } >ram :bss
+  BSS_SIZE = BSS_END - BSS_START + 1;
 }
