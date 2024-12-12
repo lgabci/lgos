@@ -9,8 +9,10 @@
 #define DISK_READSEC    0x02    /* read sectors */
 #define DISK_GETPRM     0x08    /* get drive parameters */
 #define DISK_GETTYPE    0x15    /* get disk type */
+#define DISK_DETCHNG    0x16    /* detect disk change */
 #define DISK_EXTCHK     0x41    /* int13 ext. installation check */
 #define DISK_EXTGETPRM  0x48    /* int13 ext. get drive parameters */
+#define DISK_EXTDETCHNG 0x49    /* int13 ext. media change */
 #define DISK_EXTREAD    0x42    /* int13 ext. read, LBA */
 
 #define DISK_FDDRETRY   0x05    /* retry FDD reads this many times */
@@ -126,11 +128,30 @@ void init_disk(void) {
   );
   cacheseg = (uint16_t)(dseg + 0x1000);
 
+///////////////////////////////////////////////////////////////////
 printf("%C1.\n", 7);     ///
 readsec_cache(0x00, 0);   ///
-printf("2.\n");          ///
+printf("2.\n");         ///
 readsec_cache(0x00, 1);   ///
 printf("3.\n");          ///
+// uint16_t x = cacheseg;
+// for (int i = 0; i < 10; i ++) { ///
+//   media_changed(0);             ///
+// for (int j = 0; j < 0x7ffffff0; j ++) {
+//   for (int k = 0; k < 0xffff; k ++) {
+//     if (j % 2) {
+//       cacheseg ++;
+//     }
+//   }
+// }
+// if (cacheseg != x) {
+//   cacheseg = x;
+// }
+// }
+printf("%C4.\n", 7);     ///
+readsec_cache(0x00, 10);   ///
+printf("%C5.\n", 7);     ///
+///////////////////////////////////////////////////////////////////
 }
 
 static int drv2idx(uint8_t drive) {
@@ -157,19 +178,45 @@ static int media_changed(int idx) {
   }
 
   if (a_diskgeo[idx].chng) {
-    /// check media change
+    uint8_t cf;
+    uint8_t ah;
+
     __asm__ __volatile__ (
-        "nop                            \n"
+        "movb   %[disk_detchng], %%ah           \n"
+        "movb   %[drive], %%dl                  \n"
+        "int    %[disk_int]                     \n"
+        "setcb  %[cf]                           \n"
+        "movb   %%ah, %[ah]                     \n"
+        : [cf]        "=m" (cf),
+          [ah]        "+m" (ah)
+        : [disk_detchng] "i" (DISK_DETCHNG),
+          [drive]        "m" (a_diskgeo[idx].drive),
+          [disk_int]     "i" (DISK_INT)
+        : "ah", "dl", "cc"
     );
-    return 1;
+    return cf && ! ah;
   }
 
   if (a_diskgeo[idx].extchng) {
-    /// check media change
-    return 1;
+    uint8_t cf;
+    uint8_t ah;
+
+    __asm__ __volatile__ (
+        "movb   %[disk_extdetchng], %%ah        \n"
+        "movb   %[drive], %%dl                  \n"
+        "int    %[disk_int]                     \n"
+        "setcb  %[cf]                           \n"
+        "movb   %%ah, %[ah]                     \n"
+        : [cf]        "=m" (cf),
+          [ah]        "+m" (ah)
+        : [disk_extdetchng] "i" (DISK_EXTDETCHNG),
+          [drive]           "m" (a_diskgeo[idx].drive),
+          [disk_int]        "i" (DISK_INT)
+        : "ah", "dl", "cc"
+    );
+    return (cf && ah == 0) || (! cf && ah == 6);
   }
 
-  return 1;     ///
   return 0;
 }
 
@@ -221,7 +268,6 @@ static void init_drive(uint8_t drive) {
     if ((! a_diskgeo[idx].initialized || media_changed(idx)) &&
       a_diskgeo[idx].lba) {
       struct s_e13drvpar par;
-printf("%Cc%C", 4, 7);  ///
       par.size = 0x1a;
       __asm__ __volatile__ (  /* INT13 ext get total number of sectors */
         "movb   %[disk_extgetprm], %%ah         \n"
@@ -294,7 +340,6 @@ printf("%Cc%C", 4, 7);  ///
           [disk_int]    "i" (DISK_INT)
         : "ax", "bl", "cx", "dx", "di", "cc"
       );
-printf("%Cftype=%hhd.\n%C", 5, ftype, 7);  ///
 
       a_diskgeo[idx].ftype = cf || (cx & 0x3f) == 0 ? FDD_UNK : ftype;
 
@@ -314,14 +359,12 @@ printf("%Cftype=%hhd.\n%C", 5, ftype, 7);  ///
           [disk_int]     "i" (DISK_INT)
         : "ax", "cx", "dx", "cc"
       );
-printf("%Cchange line: %hd, %hhd%C\n", 3, cf, ah, 7); ///
       if (! cf && ah == 2) {
         a_diskgeo[idx].chng = 1;        /* change line support */
       }
     }
 
     if (! a_diskgeo[idx].initialized || media_changed(idx)) {
-printf("%Cd%C", 4, 7);  ///
       uint16_t offs;
       offs = (uint16_t)(uintptr_t)&tmpsec;
 
@@ -332,42 +375,46 @@ printf("%Cd%C", 4, 7);  ///
         case FDD_288:
         case FDD_288A:
           if (readsec_chs(drive, 0, 0, a_floppytyp[FD288].secs, dseg, offs, 1)) {
-            disktype = FD288;       /* 2.88 MB */
+            disktype = FD288;   /* 2.88 MB */
+            break;
           }
           __attribute__ ((fallthrough));
         case FDD_144:
           if (readsec_chs(drive, 0, 0, a_floppytyp[FD144].secs, dseg, offs, 1)) {
-            disktype = FD144;       /* 1.44 MB */
+            disktype = FD144;   /* 1.44 MB */
+            break;
           }
           __attribute__ ((fallthrough));
         case FDD_720:
           if (readsec_chs(drive, 0, 0, a_floppytyp[FD720].secs, dseg, offs, 1)) {
-            disktype = FD720;       /* 720 KB */
+            disktype = FD720;   /* 720 KB */
+            break;
           }
           break;
         case FDD_12:
           if (readsec_chs(drive, 0, 0, a_floppytyp[FD12].secs, dseg, offs, 1)) {
-            disktype = FD12;        /* 1.2 MB */
+            disktype = FD12;    /* 1.2 MB */
+            break;
           }
           __attribute__ ((fallthrough));
         case FDD_360:
           if (readsec_chs(drive, 0, 0, a_floppytyp[FD360].secs, dseg, offs, 1)) {
             if (readsec_chs(drive, 0, (uint8_t)(a_floppytyp[FD360].heads - 1),
               a_floppytyp[FD360].secs, dseg, offs, 1)) {
-              disktype = FD360;     /* 360 MB */
+              disktype = FD360; /* 360 MB */
+              break;
             }
-            else {
-              disktype = FD180;     /* 180 MB */
-            }
+            disktype = FD180;   /* 180 MB */
+            break;
           }
           if (readsec_chs(drive, 0, 0, a_floppytyp[FD320].secs, dseg, offs, 1)) {
             if (readsec_chs(drive, 0, (uint8_t)(a_floppytyp[FD320].heads - 1),
               a_floppytyp[FD320].secs, dseg, offs, 1)) {
-              disktype = FD320;     /* 320 MB */
+              disktype = FD320; /* 320 MB */
+              break;
             }
-            else {
-              disktype = FD160;     /* 160 MB */
-            }
+            disktype = FD160;   /* 160 MB */
+            break;
           }
           break;
         default:
@@ -401,7 +448,6 @@ static int readsec_chs(uint8_t drive, uint16_t cyl, uint8_t head,
 
   int cnt = 0;
   cylw = (uint16_t)((cyl & 0xff) << 8 | (cyl & 0x300) >> 2 | (sec & 0x3f));
-printf("readsec_chs: %d, %d, %d\n", cyl, head, sec);  ///
 
   do {
     __asm__ __volatile__ (      /* read 1 sector */
@@ -434,7 +480,6 @@ printf("readsec_chs: %d, %d, %d\n", cyl, head, sec);  ///
     if (cf) {                   /* error */
       uint8_t  rcf;
       uint8_t  rstat;
-printf("*");  ///
 
       __asm__ __volatile__ (    /* disk reset */
         "movb   %[disk_reset], %%ah             \n"
@@ -500,7 +545,6 @@ static void readsec_lba(uint8_t drive, uint32_t lba, uint16_t seg,
 static uint16_t readsec_cache(uint8_t drive, uint32_t lba) {
   int cidx;
   uint16_t p;
-printf("readsec_cache: %02hhx, %ld.  ----------------------\n", drive, lba);  ///
 
   for (int i = 0; i < CACHESZ; i ++) {  /* search in cache */
     if (a_cache[i].valid && a_cache[i].drive == drive &&
@@ -529,9 +573,7 @@ printf("readsec_cache: %02hhx, %ld.  ----------------------\n", drive, lba);  //
   if (idx >= NDISK) {   /* is there room in disk geo array for this disk? */
     halt("readsec_cache: invalid disk drive: %02llx.\n", drive);
   }
-printf("%Ca%C", 2, 7);  ///
   init_drive(drive);
-printf("%Cb%C", 2, 7);  ///
 
   if (a_diskgeo[idx].lba) {     /* LBA read */
     /// test a_diskgeo lbatotsec against lba
