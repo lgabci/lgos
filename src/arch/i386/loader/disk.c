@@ -134,20 +134,21 @@ readsec_cache(0x00, 0);   ///
 printf("2.\n");         ///
 readsec_cache(0x00, 1);   ///
 printf("3.\n");          ///
-// uint16_t x = cacheseg;
-// for (int i = 0; i < 10; i ++) { ///
-//   media_changed(0);             ///
-// for (int j = 0; j < 0x7ffffff0; j ++) {
-//   for (int k = 0; k < 0xffff; k ++) {
-//     if (j % 2) {
-//       cacheseg ++;
-//     }
-//   }
-// }
-// if (cacheseg != x) {
-//   cacheseg = x;
-// }
-// }
+uint16_t x = cacheseg;
+for (int i = 0; i < 10; i ++) { ///
+//  media_changed(0);             ///
+  readsec_cache(0x00, (uint32_t)(10 + i));   ///
+for (int j = 0; j < 0x7ffffff0; j ++) {
+  for (int k = 0; k < 0xffff; k ++) {
+    if (j % 2) {
+      cacheseg ++;
+    }
+  }
+}
+if (cacheseg != x) {
+  cacheseg = x;
+}
+}
 printf("%C4.\n", 7);     ///
 readsec_cache(0x00, 10);   ///
 printf("%C5.\n", 7);     ///
@@ -177,6 +178,9 @@ static int media_changed(int idx) {
     halt("media_changed: bad index %02hd.\n", idx);
   }
 
+  int ret;
+  ret = 0;
+
   if (a_diskgeo[idx].chng) {
     uint8_t cf;
     uint8_t ah;
@@ -194,10 +198,11 @@ static int media_changed(int idx) {
           [disk_int]     "i" (DISK_INT)
         : "ah", "dl", "cc"
     );
-    return cf && ! ah;
+printf("media changed: %hhd, %02hhx.\n", cf, ah);  ///
+    ret = cf && ! ah;
   }
 
-  if (a_diskgeo[idx].extchng) {
+  if (! ret && a_diskgeo[idx].extchng) {
     uint8_t cf;
     uint8_t ah;
 
@@ -214,10 +219,18 @@ static int media_changed(int idx) {
           [disk_int]        "i" (DISK_INT)
         : "ah", "dl", "cc"
     );
-    return (cf && ah == 0) || (! cf && ah == 6);
+    ret = (cf && ah == 0) || (! cf && ah == 6);
   }
 
-  return 0;
+  if (ret) {
+    for (int i = 0; i < CACHESZ; i ++) {
+      if (a_cache[i].valid && a_cache[i].drive == a_diskgeo[idx].drive) {
+        a_cache[i].valid = 0;
+      }
+    }
+  }
+
+  return ret;
 }
 
 static void init_drive(uint8_t drive) {
@@ -359,6 +372,7 @@ static void init_drive(uint8_t drive) {
           [disk_int]     "i" (DISK_INT)
         : "ax", "cx", "dx", "cc"
       );
+printf("media change-line capacity: %hhd, %02hhx.\n", cf, ah);  ///
       if (! cf && ah == 2) {
         a_diskgeo[idx].chng = 1;        /* change line support */
       }
@@ -446,6 +460,7 @@ static int readsec_chs(uint8_t drive, uint16_t cyl, uint8_t head,
   uint8_t  cf;
   uint8_t  stat;
 
+printf("readsec_chs: %hd, %hhd, %hhd, %04hx:%04hx.\n", cyl, head, sec, seg, offs);  ///
   int cnt = 0;
   cylw = (uint16_t)((cyl & 0xff) << 8 | (cyl & 0x300) >> 2 | (sec & 0x3f));
 
@@ -513,6 +528,7 @@ static void readsec_lba(uint8_t drive, uint32_t lba, uint16_t seg,
   uint8_t  cf;
   uint8_t  stat;
   struct s_dpa dpa;
+printf("readsec_lba: %hhd, %ld, %04hx:%04hx\n", drive, lba, seg, offs);  ///
 
   dpa.size = sizeof(dpa);
   dpa.zero = 0;
@@ -566,6 +582,11 @@ static uint16_t readsec_cache(uint8_t drive, uint32_t lba) {
       }
     }
   }
+  a_cache[cidx].drive = drive;
+  a_cache[cidx].valid = 1;
+  a_cache[cidx].counter = read_cnt ++;
+  a_cache[cidx].lba = lba;
+
   p = (uint16_t)(cidx * SECSZ);
 
   int idx;
