@@ -1,5 +1,9 @@
 /* LGOS i386 loader video C file */
 
+/** @file video.c
+* LGOS loader video.c file
+*/
+
 #include <stdarg.h>
 #include "video.h"
 #include "misc.h"
@@ -14,7 +18,7 @@
 static uint8_t vidpage;         /* current video page */
 static uint8_t color;           /* current video color */
 
-static uint8_t maxcol;          /* max number of columns, 0 based */
+static uint8_t maxcol;          /**< max number of columns, 0 based */
 static uint8_t maxrow;          /* max number of rows, 0 based */
 static uint8_t col;             /* actual column, 0 based */
 static uint8_t row;             /* actual row, 0 based */
@@ -23,6 +27,8 @@ void get_curpos(void);
 void set_curpos(void);
 void scrollup(uint8_t rows);
 
+/** initialize video
+*/
 void init_video(void) {
   __asm__ __volatile__ (
         "movb   %[vid_getmode], %%ah\n"

@@ -1,4 +1,9 @@
 /* LGOS i386 load asm file */
+
+/** @file load.S
+* LGOS loader load.S file
+*/
+
 .code16
 .arch i8086,nojumps
 

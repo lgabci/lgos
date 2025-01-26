@@ -1,4 +1,9 @@
 /* LGOS i386 boot disk asm file */
+
+/** @file disk.S
+* LGOS loader disk.S file
+*/
+
 .code16
 .arch i8086,nojumps
 
@@ -12,10 +17,12 @@
 
 .section .text
 
-/* initialize disk
-   input: DL = BIOS drive number
-   output: mcyl, mhead, msec are filled when using HDD
-   modified: AX, BL, CX, DX, DI, flags; SI, BP: BIOS bug
+/** @brief initialize disk
+*
+*   mcyl, mhead, msec variables are filled when using HDD@n
+*   <b>modified registers</b>: AX, BL, CX, DX, DI, flags; SI, BP: BIOS bug
+#void init_disk(uint8_t DL /**<BIOS drive number*/ ) {
+#}
 */
 .global init_disk
 init_disk:
@@ -65,11 +72,13 @@ init_disk:
 9:      movw    $dskerr, %si    // on error
         jmp     halt
 
-/* read LBA sector into memory
-   input: DX:AX = LBA of sector to read
-          ES:BX = data buffer
-   output:
-   modified: AX, CX, DX, SI, DI, flags
+/** read LBA sector into memory@n
+*   @b input: DX:AX = LBA of sector to read@n
+*          ES:BX = data buffer@n
+*   @b output: @n
+*   @b modified: AX, CX, DX, SI, DI, flags@n
+#void read_sector(void) {
+#}
 */
 .global read_sector
 read_sector:

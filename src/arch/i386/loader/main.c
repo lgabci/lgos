@@ -1,5 +1,8 @@
 /* LGOS i386 loader main C file */
 
+/** @file main.c
+* LGOS loader main.c file
+*/
 #include <stdint.h>
 
 #include "video.h"

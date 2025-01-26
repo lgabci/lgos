@@ -1,4 +1,9 @@
 /* LGOS i386 boot video asm file */
+
+/** @file video.S
+* LGOS loader video.S file
+*/
+
 .code16
 .arch i8086,nojumps
 

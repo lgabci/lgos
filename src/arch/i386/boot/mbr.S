@@ -1,4 +1,9 @@
 /* LGOS i386 MBR asm file */
+
+/** @file mbr.S
+* LGOS loader mbr.S file
+*/
+
 .code16
 .arch i8086,nojumps
 

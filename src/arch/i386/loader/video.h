@@ -1,5 +1,9 @@
 /* LGOS i386 loader video header file */
 
+/** @file video.h
+* LGOS loader video.h file
+*/
+
 #ifndef _video_h
 #define _video_h
 

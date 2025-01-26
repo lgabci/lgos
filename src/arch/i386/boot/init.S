@@ -1,4 +1,9 @@
 /* LGOS i386 boot init asm file */
+
+/** @file init.S
+* LGOS boot block init.S file
+*/
+
 .code16
 .arch i8086,nojumps
 

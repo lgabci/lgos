@@ -1,5 +1,9 @@
 /* LGOS i386 loader misc header file */
 
+/** @file misc.h
+* LGOS loader misc.h file
+*/
+
 #ifndef _misc_h
 #define _misc_h
 

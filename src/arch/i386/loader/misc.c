@@ -1,5 +1,9 @@
 /* LGOS i386 loader misc C file */
 
+/** @file misc.c
+* LGOS loader misc.c file
+*/
+
 #include "misc.h"
 #include "video.h"
 

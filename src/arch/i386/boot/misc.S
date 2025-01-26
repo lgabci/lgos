@@ -1,4 +1,9 @@
 /* LGOS i386 boot misc asm file */
+
+/** @file misc.S
+* LGOS loader misc.S file
+*/
+
 .code16
 .arch i8086,nojumps
 
