@@ -32,3 +32,4 @@ add_project_link_arguments(['-nostdlib',
 
 arch = host_machine.cpu()
 subdir('src' / 'arch' / arch)
+subdir('doc')
