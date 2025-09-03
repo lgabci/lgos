@@ -1,8 +1,8 @@
 [binaries]
-c = 'i386-elf-gcc'
-objdump = 'i386-elf-objdump'
-objcopy = 'i386-elf-objcopy'
-strip = 'i386-elf-strip'
+c = 'x86_64-elf-gcc'
+objdump = 'x86_64-elf-objdump'
+objcopy = 'x86_64-elf-objcopy'
+strip = 'x86_64-elf-strip'
 
 [host_machine]
 system = 'lgos'

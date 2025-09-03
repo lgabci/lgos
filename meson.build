@@ -6,7 +6,7 @@ project('lgos',
                           'warning_level=everything',
                           'werror=true',
                           'b_asneeded=false'],
-        meson_version: '1.0.1',
+        meson_version: '>=1.0.1',
         version: files('lgos_version.txt'))
 
 compiler = meson.get_compiler('c')
