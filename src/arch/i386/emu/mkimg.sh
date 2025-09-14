@@ -339,6 +339,8 @@ checkparams () {
 
   imgsizes=$(numfmt --from iec --to-unit "$secsize" "$imgsize")
   imgsizek=$(numfmt --from iec --to-unit 1024 "$imgsize")
+  partstartb=$((partstart * secsize))
+  partsizeb=$((partsize * secsize))
 }
 
 # create image file
@@ -392,9 +394,11 @@ createpart () {
 # create file system in image file partition
 # arguments
 #  1. image file
-#  2. partition start in sectors
-#  3. partition size in sectors
-#  4. filesystem type: FAT, Ext2
+#  2. disk type: hd, fd
+#  3. partition start in sectors
+#  4. partition size in sectors
+#  5. filesystem type: FAT, Ext2
+#  6. partition size in KB
 createfs () {
   local imgfile
   local disktype
@@ -438,12 +442,53 @@ createfs () {
   esac
 }
 
+# mount file system
+# arguments
+#  1. image file
+#  2. disk type: hd, fd
+#  3. partition start in bytes
+#  4. partition size in bytes
+#  5. filesystem type: FAT, Ext2
+mountfs () {
+  local imgfile
+  local disktype
+  local partstartb
+  local partsizeb
+  local fstype
+
+  imgfile="$1"
+  disktype="$2"
+  partstartb="$3"
+  partsizeb="$4"
+  fstype="$5"
+
+  local udisksctlout
+  case "$disktype" in
+    fd)
+      udisksctlout=$(udisksctl loop-setup --file "$imgfile" \
+                               --no-user-interaction)
+      ;;
+    hd)
+      udisksctlout=$(udisksctl loop-setup --file "$imgfile" \
+                               --offset "$partstartb" \
+                               --size "$partsizeb" \
+                               --no-user-interaction)
+      ;;
+  esac
+
+  loopdev=$(echo "$udisksctlout" | grep -o '/dev/loop[0-9]\+')
+  if [ -z "$loopdev" ]; then
+    die "the name of the loop device not found"
+  fi
+
+  ### mount loop device
+}
 
 checkparams "$@"
 createimg "$imgfile" "$imgsize"
 createpart "$imgfile" "$disktype" "$partstart" "$partsize" "$fstype"
 createfs "$imgfile" "$disktype" "$partstart" "$partsize" "$fstype" "$partsizek"
-
+mountfs "$imgfile" "$disktype" "$partstartb" "$partsizeb" "$fstype"
 die -----------------
 
 
