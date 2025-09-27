@@ -27,6 +27,14 @@ die () {
   exit 1
 }
 
+# exit function
+exitfv () {
+  trap - EXIT HUP INT QUIT TERM
+
+  umountfs "${mountpoint:-}" "${loopdev:-}"
+}
+trap exitfv EXIT HUP INT QUIT TERM
+
 # find executable file and store in a variable, exit with error if not found
 # arguments
 #  1. program name to find
@@ -466,22 +474,56 @@ mountfs () {
   case "$disktype" in
     fd)
       udisksctlout=$(udisksctl loop-setup --file "$imgfile" \
-                               --no-user-interaction)
+                               --no-user-interaction --no-partition-scan)
       ;;
     hd)
-      udisksctlout=$(udisksctl loop-setup --file "$imgfile" \
+      udisksctlout=$(udisksctl loop-setup --file "$imgfile" --read-only \
                                --offset "$partstartb" \
                                --size "$partsizeb" \
-                               --no-user-interaction)
+                               --no-user-interaction --no-partition-scan)
       ;;
   esac
 
   loopdev=$(echo "$udisksctlout" | grep -o '/dev/loop[0-9]\+')
   if [ -z "$loopdev" ]; then
-    die "the name of the loop device not found"
+    die "the name of the loop device not found: \"$udisksctlout\""
   fi
 
-  ### mount loop device
+  # test if the loopdev is mounted (automount) and mount if it is not
+  if ! mountpoint=$(findmnt --noheading -o TARGET --source "$loopdev"); then
+    udisksctlout=$(udisksctl mount --block-device "$loopdev" \
+                             --no-user-interaction)
+    mountpoint=$(echo "$udisksctlout" | grep -o '/media/'"$USER"'/[^ ]\+')
+    if [ -z "$mountpoint" ]; then
+      die "the name of the mount point not found: \"$udisksctlout\""
+    fi
+  fi
+}
+
+# umount file system, call by exitfv
+# arguments
+#  1. mountpoint
+#  2. loop device
+umountfs () {
+  local mountpoint
+  local loopdev
+
+  mountpoint="$1"
+  loopdev="$2"
+
+  if [ -n "$mountpoint" ] &&
+       findmnt --noheading -o TARGET --target "$mountpoint" >/dev/null; then
+    udisksctl unmount --block-device "$loopdev" \
+              --no-user-interaction >/dev/null
+  fi
+
+  if [ -n "$loopdev" ]; then
+    findex losetup losetup
+    if "$losetup" "$loopdev" >/dev/null 2>&1; then
+      udisksctl loop-delete --block-device "$loopdev" \
+                --no-user-interaction >/dev/null
+    fi
+  fi
 }
 
 checkparams "$@"
@@ -494,7 +536,7 @@ die -----------------
 
 
 
-
+: <<'END_COMMENT'
 
 # get symbol address
 # parameters: 1. elf file
@@ -635,7 +677,7 @@ $((sizelim * secsize))"' bytes.")
 
 rmfiles=""
 # exit function
-exitfv () {
+exitfv_ () {
   if [ -n "${mountpt:-}" ]; then
     if findmnt "$mountpt" >/dev/null; then
       sudo umount "$mountpt"
@@ -832,3 +874,4 @@ case "$disktype" in
     setsym "$imgfile" $((pstart * secsize)) "$bootelf" msec 2 "$msec"
     ;;
 esac
+END_COMMENT
