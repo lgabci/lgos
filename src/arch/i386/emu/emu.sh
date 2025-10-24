@@ -11,7 +11,7 @@ disktype="$1"
 imgfile="$2"
 
 qemuargs="-machine isapc -cpu 486 -accel kvm -m 2"
-qemuargs="$qemuargs -no-acpi -no-hpet -nic none -serial none"
+qemuargs="$qemuargs -nic none -serial none"
 qemuargs="$qemuargs -parallel none -rtc base=localtime"
 
 case "$disktype" in

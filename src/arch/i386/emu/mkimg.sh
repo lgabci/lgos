@@ -1,18 +1,55 @@
 #!/bin/sh
 
-# arguments
-#  1. image file
-#  2. disk type: hd, fd
-#  3. image size, eg.: 100M
-#  4. partition start in sectors
-#  5. partition size in sectors
-#  6. FS type: FAT, Ext2
-#  7. MBR elf file
-#  8. MBR bin file
-#  9. boot elf file
-# 10. boot bin file
-# 11. loader elf file
-# 12. loader bin file
+# +------------------------------------+
+# | parameters                         |
+# +------+-----------------------------+
+# | pos. | value                       |
+# +------+-----------------------------+
+# |   1. | image file                  |
+# |   2. | disk type: hd, fd           |
+# |   3. | image size, eg.: 100M       |
+# |   4. | partition start in sectors  |
+# |   5. | partition size in sectors   |
+# |   6. | FS type: FAT, Ext2          |
+# |   7. | MBR elf file                |
+# |   8. | MBR bin file                |
+# |   9. | boot elf file               |
+# |  10. | boot bin file               |
+# |  11. | loader elf file             |
+# |  12. | loader bin file             |
+# +------+-----------------------------+
+
+# +-----------------------------------------------+
+# | global variables                              |
+# +-------------+---------------------------------+
+# | variable    | value                           |
+# +-------------+---------------------------------+
+# | imgfile     | image file                      |
+# | disktype    | disk type: hd, fd               |
+# | imgsize     | image size, eg.: 100M           |
+# | partstart   | partition start in sectors      |
+# | partsize    | partition size in sectors       |
+# | fstype      | FS type: FAT, Ext2              |
+# | mbrelf      | MBR elf file                    |
+# | mbrbin      | MBR bin file                    |
+# | bootelf     | boot elf file                   |
+# | bootbin     | boot bin file                   |
+# | ldrelf      | loader elf file                 |
+# | ldrbin      | loader bin file                 |
+# | secsize     | sector size in bytes            |
+# | partsizek   | partition size in KB            |
+# | imgsizes    | image file size in sectors      |
+# | partstartb  | partition start in bytes        |
+# | partsizeb   | partition size in bytes         |
+# | biosdisk    | BIOS disk ID: fd = 0, hd = 0x80 |
+# | fatmedia    | FAT media byte                  |
+# | fatsize     | FAT size: 12, 16, or 32         |
+# | parttype    | partition ID type               |
+# | bootdir     | boot directory in image         |
+# | loopdev     | LOOP device of image file       |
+# | mountpoint  | mount point of image file       |
+# | partend     | partition end in sectors        |
+# +-------------+---------------------------------+
 
 set -eu
 export LANG=C
@@ -28,6 +65,7 @@ die () {
 }
 
 # exit function
+# called on trap
 exitfv () {
   trap - EXIT HUP INT QUIT TERM
 
@@ -35,228 +73,52 @@ exitfv () {
 }
 trap exitfv EXIT HUP INT QUIT TERM
 
-# find executable file and store in a variable, exit with error if not found
+# find executable file and return it, exit with error if not found
 # arguments
 #  1. program name to find
-#  2. variable name
 findex () {
-  local progname
-  local varname
-  local varvalue
-  progname="$1"
-  varname="$2"
-  varvalue=$(eval "echo \${$varname:-}")
-  if [ -z "$varvalue" ]; then
-    local ret
-    ret=$(whereis -b "$progname" | awk '{print $2}')
-    if [ -z "$ret" ]; then
-      [ -n "$ret" ] || error "findex: $progname not found."
-    fi
-    eval $varname=$ret
+  _progname="$1"
+
+  _ret=$(whereis -b "$_progname" | awk '{print $2}')
+  if [ -z "$_ret" ]; then
+    die "findex: $_progname not found."
   fi
+  echo "$_ret"
+  unset _ret
+
+  unset _progname
 }
 
-# get BIOS disk ID
-getbiosdisk () {
-  local disktype
-
-  disktype="$1"
-
-  local biosdisk
-  biosdisk=""
-
-  case "$disktype" in
-    "fd")
-      biosdisk="0x00"
-      ;;
-    "hd")
-      biosdisk="0x80"
-      ;;
-  esac
-
-  echo "$biosdisk"
-}
-
-# get FAT media byte value
+# copy and ELF file to the image, max size is 512 bytes
 # arguments
-#  1. disk type: hd, fd
-#  2. image size, eg.: 100M
-#  3. FS type: FAT, Ext2
-getfatmedia () {
-  local disktype
-  local imgsize
-  local fstype
+#  1. ELF file
+#  2. file to copy to
+#  3. offset in image file
+copyelf () {
+  _elf="$1"
+  _img="$2"
+  _imgoffs="$3"
 
-  disktype="$1"
-  imgsize="$2"
-  fstype="$3"
-
-  local fatmedia
-  fatmedia=""
-
-  case "$fstype" in
-    FAT)
-      case "$disktype" in
-        fd)
-          case "imgsize" in
-            1440K|2880K)
-              fatmedia="0xf0"
-              ;;
-            720K|1200K)
-              fatmedia="0xf9"
-              ;;
-            180K)
-              fatmedia="0xfc"
-              ;;
-            360K)
-              fatmedia="0xfd"
-              ;;
-            160K)
-              fatmedia="0xfe"
-              ;;
-            320K)
-              fatmedia="0xff"
-              ;;
-            *)
-              fatmedia="0xf0"
-              ;;
-          esac
-          ;;
-        hd)
-          fatmedia="0xf8"
-          ;;
-      esac
-      ;;
-  esac
-
-  echo "$fatmedia"
-}
-
-# get FAT media byte value
-# arguments
-#  1. disk type: hd, fd
-#  2. image size in sectors
-#  3. partition size in sectors
-#  4. FS type: FAT, Ext2
-getfatsize () {
-  local disktype
-  local imgsizes
-  local partsize
-  local fstype
-
-  disktype="$1"
-  imgsizes="$2"
-  partsize="$3"
-  fstype="$4"
-
-  local fatsize
-  fatsize=""
-
-  local fssize
-  case "$disktype" in
-    fd)
-      fssize="$imgsizes"
-      ;;
-    hd)
-      fssize="$partsize"
-      ;;
-  esac
-
-  case "$fstype" in
-    FAT)
-      # FAT12: 50 KB - 16 MB min - max
-      #        50 KB - 4 MB - 1
-      # FAT16: 2 MB - 4 GB min - max
-      #        4 MB - 1 GB - 1
-      # FAT32: 512 MB - 2 TB
-      #        1 GB - 2TB
-      if [ "$fssize" -lt 100 ]; then  # < 50 KB
-        die "FAT partition size too small: $fssize"
-      elif [ "$fssize" -lt 8192 ]; then  # < 4 MB
-        fatsize=12
-      elif [ "$fssize" -lt 2097152 ]; then    # < 1 GB
-        fatsize=16
-      elif [ "$fssize" -le 4294967296 ]; then  # <= 2 TB
-        fatsize=32
-      else
-        die "FAT partition size too big: $fssize"
+  x86_64-elf-readelf --program-headers --wide "$_elf" | \
+    awk '{ if ($1 == "LOAD") { print $2 " " $4 " " $5 } }' | \
+    while read -r _offs _addr _size; do
+      _offs=$((_offs))
+      _addr=$((_addr))
+      _size=$((_size))
+      if [ "$_size" -ne 0 ]; then
+        if [ $((_addr + _size)) -gt "$secsize" ]; then
+          die "copyelf ($_elf) is over sector size ($secsize) bytes."
+        fi
+        dd if="$_elf" of="$_img" bs=1 skip="$_offs" \
+           seek="$((_imgoffs + _addr))" count="$_size" conv=notrunc \
+           iflag=fullblock status=none
       fi
-      ;;
-  esac
 
-  echo "$fatsize"
-}
+    done
 
-# get partition type ID
-# arguments
-#  1. disk type: hd, fd
-#  2. partition start in sectors
-#  3. partition size in sectors
-#  4. FS type: FAT, Ext2
-getparttype () {
-  local disktype
-  local partstart
-  local partsize
-  local fstype
-
-  disktype="$1"
-  partstart="$2"
-  partsize="$3"
-  fstype="$4"
-
-  local parttype
-  parttype=""
-
-  case "$disktype" in
-    hd)
-      case "$fstype" in
-        Ext2)
-          parttype=83
-          ;;
-        FAT)
-          local partend
-          partend=$((partstart + partsize - 1))
-
-          # FAT12: 50 KB - 16 MB min - max
-          #        50 KB - 4 MB - 1
-          #        0x01 in 1st 32 MB of disk
-          #        0x06 over 1st 32 MB of disk
-          # FAT16: 2 MB - 4 GB min - max
-          #        4 MB - 1 GB - 1
-          #        0x04 size < 65536 sectors, in 1st 32 MB of disk
-          #        0x06 size >= 65536 sectors, in 1st 8 GB of disk
-          #        0x0E over 1st 8 GB of disk, LBA
-          # FAT32: 512 MB - 2 TB min - max
-          #        1 GB - 2TB
-          #        0x0B CHS
-          #        0x0C LBA
-          if [ "$partsize" -lt 100 ]; then  # < 50 KB
-            die "FAT partition size too small: $partsize"
-          elif [ "$partsize" -lt 8192 ]; then  # < 4 MB
-            if [ "$partend" -lt 65536 ]; then  # in 1st 32 MB of disk
-              parttype="01"
-            else                               # over 1st 32 MB of disk
-              parttype="06"
-            fi
-          elif [ "$partsize" -lt 2097152 ]; then    # < 1 GB
-            if [ "$partend" -lt 65536 ]; then       # in 1st 32 MB of disk
-              parttype="04"
-            elif [ "$partend" -lt 16777216 ]; then  # in 1st 8 GB of disk
-              parttype="06"
-            else                                    # over 1st 8 GB of disk
-              parttype="0E"
-            fi
-          elif [ "$partsize" -le 4294967296 ]; then  # <= 2 TB
-            parttype="0C"
-          else
-            die "FAT partition size too big: $partsize"
-          fi
-          ;;
-      esac
-      ;;
-  esac
-
-  echo "$parttype"
+  unset _elf
+  unset _img
+  unset _imgoffs
 }
 
 # check parameters
@@ -346,52 +208,148 @@ checkparams () {
   fi
 
   imgsizes=$(numfmt --from iec --to-unit "$secsize" "$imgsize")
-  imgsizek=$(numfmt --from iec --to-unit 1024 "$imgsize")
   partstartb=$((partstart * secsize))
   partsizeb=$((partsize * secsize))
+
+  case "$disktype" in
+    "fd")
+      biosdisk="0x00"
+      ;;
+    "hd")
+      biosdisk="0x80"
+      ;;
+  esac
+
+  case "$fstype" in
+    FAT)
+      case "$disktype" in
+        fd)
+          case "$imgsize" in
+            1440K|2880K)
+              fatmedia="0xf0"
+              ;;
+            720K|1200K)
+              fatmedia="0xf9"
+              ;;
+            180K)
+              fatmedia="0xfc"
+              ;;
+            360K)
+              fatmedia="0xfd"
+              ;;
+            160K)
+              fatmedia="0xfe"
+              ;;
+            320K)
+              fatmedia="0xff"
+              ;;
+            *)
+              fatmedia="0xf0"
+              ;;
+          esac
+          ;;
+        hd)
+          fatmedia="0xf8"
+          ;;
+      esac
+      ;;
+  esac
+
+  case "$disktype" in
+    fd)
+      _fssize="$imgsizes"
+      ;;
+    hd)
+      _fssize="$partsize"
+      ;;
+  esac
+
+  case "$fstype" in
+    FAT)
+      # FAT12: 50 KB - 16 MB min - max
+      #        50 KB - 4 MB - 1
+      # FAT16: 2 MB - 4 GB min - max
+      #        4 MB - 1 GB - 1
+      # FAT32: 512 MB - 2 TB
+      #        1 GB - 2TB
+      if [ "$_fssize" -lt 100 ]; then  # < 50 KB
+        die "FAT partition size too small: $_fssize"
+      elif [ "$_fssize" -lt 8192 ]; then  # < 4 MB
+        fatsize=12
+      elif [ "$_fssize" -lt 2097152 ]; then    # < 1 GB
+        fatsize=16
+      elif [ "$_fssize" -le 4294967296 ]; then  # <= 2 TB
+        fatsize=32
+      else
+        die "FAT partition size too big: $_fssize"
+      fi
+      ;;
+  esac
+  unset _fssize
+
+  partend=$((partstart + partsize - 1))
+
+  case "$disktype" in
+    hd)
+      case "$fstype" in
+        Ext2)
+          parttype=83
+          ;;
+        FAT)
+          # FAT12: 50 KB - 16 MB min - max
+          #        50 KB - 4 MB - 1
+          #        0x01 in 1st 32 MB of disk
+          #        0x06 over 1st 32 MB of disk
+          # FAT16: 2 MB - 4 GB min - max
+          #        4 MB - 1 GB - 1
+          #        0x04 size < 65536 sectors, in 1st 32 MB of disk
+          #        0x06 size >= 65536 sectors, in 1st 8 GB of disk
+          #        0x0E over 1st 8 GB of disk, LBA
+          # FAT32: 512 MB - 2 TB min - max
+          #        1 GB - 2TB
+          #        0x0B CHS
+          #        0x0C LBA
+          if [ "$partsize" -lt 100 ]; then  # < 50 KB
+            die "FAT partition size too small: $partsize"
+          elif [ "$partsize" -lt 8192 ]; then  # < 4 MB
+            if [ "$partend" -lt 65536 ]; then  # in 1st 32 MB of disk
+              parttype="01"
+            else                               # over 1st 32 MB of disk
+              parttype="06"
+            fi
+          elif [ "$partsize" -lt 2097152 ]; then    # < 1 GB
+            if [ "$partend" -lt 65536 ]; then      # in 1st 32 MB of disk
+              parttype="04"
+            elif [ "$partend" -lt 16777216 ]; then  # in 1st 8 GB of disk
+              parttype="06"
+            else                                    # over 1st 8 GB of disk
+              parttype="0E"
+            fi
+          elif [ "$partsize" -le 4294967296 ]; then  # <= 2 TB
+            parttype="0C"
+          else
+            die "FAT partition size too big: $partsize"
+          fi
+          ;;
+      esac
+      ;;
+  esac
+
+  bootdir="boot"
 }
 
 # create image file
-# arguments
-#  1. image file
-#  2. image size (eg. 100M)
 createimg () {
-  local imgfile
-  local imgsizeb
-  imgfile="$1"
-  imgsizeb="$2"
-
   if [ -e "$imgfile" ]; then
     truncate -s 0 "$imgfile"
   fi
-  truncate -s "$imgsizeb" "$imgfile"
+  truncate -s "$imgsize" "$imgfile"
 }
 
 # create partition in image file
-# arguments
-#  1. image file
-#  2. disk type: hd, fd
-#  3. partition start in sectors
-#  4. partition size in sectors
-#  5. filesystem type: FAT, Ext2
 createpart () {
-  local imgfile
-  local disktype
-  local partstart
-  local partsize
-  local fstype
-
-  imgfile="$1"
-  disktype="$2"
-  partstart="$3"
-  partsize="$4"
-  fstype="$5"
-
   if [ "$disktype" = "hd" ]; then
-    findex sfdisk sfdisk
-
-    local parttype
-    parttype=$(getparttype "$disktype" "$partstart" "$partsize" "$fstype")
+    sfdisk=$(findex "sfdisk")
 
     echo "$partstart,$partsize,$parttype,*" |
       "$sfdisk" --no-reread --no-tell-kernel --quiet --sector-size "$secsize" \
@@ -399,29 +357,17 @@ createpart () {
   fi
 }
 
+# create MBR sector
+creatembr () {
+  case "$disktype" in
+    hd)
+      copyelf "$mbrelf" "$imgfile" 0
+      ;;
+  esac
+}
+
 # create file system in image file partition
-# arguments
-#  1. image file
-#  2. disk type: hd, fd
-#  3. partition start in sectors
-#  4. partition size in sectors
-#  5. filesystem type: FAT, Ext2
-#  6. partition size in KB
 createfs () {
-  local imgfile
-  local disktype
-  local partstart
-  local partsize
-  local fstype
-  local partsizek
-
-  imgfile="$1"
-  disktype="$2"
-  partstart="$3"
-  partsize="$4"
-  fstype="$5"
-  partsizek="$6"
-
   case "$disktype" in
     fd)
       partstart="0"
@@ -430,19 +376,11 @@ createfs () {
 
   case "$fstype" in
     Ext2)
-      findex mkfs.ext2 mkfsext2
+      mkfsext2=$(findex "mkfs.ext2")
       "$mkfsext2" -E offset="$partstart" -q "$imgfile" "$partsizek"
       ;;
     FAT)
-      local fatmedia
-      local fatsize
-      local biosdisk
-
-      fatmedia=$(getfatmedia "$disktype" "$imgsize" "$fstype")
-      fatsize=$(getfatsize "$disktype" "$imgsizes" "$partsize" "$fstype")
-      biosdisk=$(getbiosdisk "$disktype")
-
-      findex mkfs.fat mkfsfat
+      mkfsfat=$(findex "mkfs.fat")
       "$mkfsfat" -D "$biosdisk" -F "$fatsize" -M "$fatmedia" -g 255/63 \
                  --offset "$partstart" "$imgfile" ${partsizek:+"$partsizek"}
       ### set CHS geometry of FAT file system
@@ -450,43 +388,29 @@ createfs () {
   esac
 }
 
+# create boot sector
+createboot () {
+  copyelf "$bootelf" "$imgfile" "$partstartb"
+}
+
 # mount file system
-# arguments
-#  1. image file
-#  2. disk type: hd, fd
-#  3. partition start in bytes
-#  4. partition size in bytes
-#  5. filesystem type: FAT, Ext2
 mountfs () {
-  local imgfile
-  local disktype
-  local partstartb
-  local partsizeb
-  local fstype
-
-  imgfile="$1"
-  disktype="$2"
-  partstartb="$3"
-  partsizeb="$4"
-  fstype="$5"
-
-  local udisksctlout
   case "$disktype" in
     fd)
-      udisksctlout=$(udisksctl loop-setup --file "$imgfile" \
-                               --no-user-interaction --no-partition-scan)
+      _udisksctlout=$(udisksctl loop-setup --file "$imgfile" \
+                                --no-user-interaction --no-partition-scan)
       ;;
     hd)
-      udisksctlout=$(udisksctl loop-setup --file "$imgfile" --read-only \
-                               --offset "$partstartb" \
-                               --size "$partsizeb" \
-                               --no-user-interaction --no-partition-scan)
+      _udisksctlout=$(udisksctl loop-setup --file "$imgfile" \
+                                --offset "$partstartb" \
+                                --size "$partsizeb" \
+                                --no-user-interaction --no-partition-scan)
       ;;
   esac
 
-  loopdev=$(echo "$udisksctlout" | grep -o '/dev/loop[0-9]\+')
+  loopdev=$(echo "$_udisksctlout" | grep -o '/dev/loop[0-9]\+')
   if [ -z "$loopdev" ]; then
-    die "the name of the loop device not found: \"$udisksctlout\""
+    die "the name of the loop device not found: \"$_udisksctlout\""
   fi
 
   # test if the loopdev is mounted (automount) and mount if it is not
@@ -498,27 +422,20 @@ mountfs () {
       die "the name of the mount point not found: \"$udisksctlout\""
     fi
   fi
+
+  unset _udisksctlout
 }
 
 # umount file system, call by exitfv
-# arguments
-#  1. mountpoint
-#  2. loop device
 umountfs () {
-  local mountpoint
-  local loopdev
-
-  mountpoint="$1"
-  loopdev="$2"
-
-  if [ -n "$mountpoint" ] &&
+  if [ -n "${mountpoint:-}" ] &&
        findmnt --noheading -o TARGET --target "$mountpoint" >/dev/null; then
     udisksctl unmount --block-device "$loopdev" \
               --no-user-interaction >/dev/null
   fi
 
-  if [ -n "$loopdev" ]; then
-    findex losetup losetup
+  if [ -n "${loopdev:-}" ]; then
+    losetup=$(findex "losetup")
     if "$losetup" "$loopdev" >/dev/null 2>&1; then
       udisksctl loop-delete --block-device "$loopdev" \
                 --no-user-interaction >/dev/null
@@ -526,13 +443,45 @@ umountfs () {
   fi
 }
 
-checkparams "$@"
-createimg "$imgfile" "$imgsize"
-createpart "$imgfile" "$disktype" "$partstart" "$partsize" "$fstype"
-createfs "$imgfile" "$disktype" "$partstart" "$partsize" "$fstype" "$partsizek"
-mountfs "$imgfile" "$disktype" "$partstartb" "$partsizeb" "$fstype"
-die -----------------
+# copy loader to image
+copyldr () {
+  mkdir -p "$mountpoint/$bootdir"
+  cp "$ldrbin" "$mountpoint/$bootdir"
+#  echo "bootdir: $bootdir"  ###
+#  ls -la "$bootdir"         ###
+}
 
+# main function
+# arguments
+#  1. image file
+#  2. disk type: hd, fd
+#  3. image size, eg.: 100M
+#  4. partition start in sectors
+#  5. partition size in sectors
+#  6. FS type: FAT, Ext2
+#  7. MBR elf file
+#  8. MBR bin file
+#  9. boot elf file
+# 10. boot bin file
+# 11. loader elf file
+# 12. loader bin file
+main () {
+  checkparams "$@"
+  createimg
+  createpart
+  creatembr
+  createfs
+  createboot
+
+  mountfs
+
+  copyldr
+  exitfv
+
+##  die -----------------
+}
+
+main "$@"
 
 
 
