@@ -1,4 +1,7 @@
 #!/bin/sh
+
+# LGOS i386 emulator shell script
+
 set -eu
 
 if [ $# -ne 2 ]; then

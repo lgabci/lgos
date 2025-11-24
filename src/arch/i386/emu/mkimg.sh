@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# LGOS i386 disk image creator shell script
+
 # +------------------------------------+
 # | parameters                         |
 # +------+-----------------------------+
@@ -12,11 +14,8 @@
 # |   5. | partition size in sectors   |
 # |   6. | FS type: FAT, Ext2          |
 # |   7. | MBR elf file                |
-# |   8. | MBR bin file                |
-# |   9. | boot elf file               |
-# |  10. | boot bin file               |
-# |  11. | loader elf file             |
-# |  12. | loader bin file             |
+# |   8. | boot elf file               |
+# |   9. | loader elf file             |
 # +------+-----------------------------+
 
 # +-----------------------------------------------+
@@ -31,11 +30,8 @@
 # | partsize    | partition size in sectors       |
 # | fstype      | FS type: FAT, Ext2              |
 # | mbrelf      | MBR elf file                    |
-# | mbrbin      | MBR bin file                    |
 # | bootelf     | boot elf file                   |
-# | bootbin     | boot bin file                   |
 # | ldrelf      | loader elf file                 |
-# | ldrbin      | loader bin file                 |
 # | secsize     | sector size in bytes            |
 # | partsizek   | partition size in KB            |
 # | imgsizes    | image file size in sectors      |
@@ -49,6 +45,9 @@
 # | loopdev     | LOOP device of image file       |
 # | mountpoint  | mount point of image file       |
 # | partend     | partition end in sectors        |
+# | mcyl        | number of cylinders, only FDD   |
+# | mhead       | number of heads, only FDD       |
+# | msec        | number of sectors, only FDD     |
 # +-------------+---------------------------------+
 
 set -eu
@@ -94,20 +93,25 @@ findex () {
 #  1. ELF file
 #  2. file to copy to
 #  3. offset in image file
+#  4. max size of code
 copyelf () {
   _elf="$1"
   _img="$2"
-  _imgoffs="$3"
+  _imgoffs="${3:-0}"
+  _maxsz="${4:-0}"
 
-  x86_64-elf-readelf --program-headers --wide "$_elf" | \
-    awk '{ if ($1 == "LOAD") { print $2 " " $4 " " $5 } }' | \
-    while read -r _offs _addr _size; do
-      _offs=$((_offs))
-      _addr=$((_addr))
-      _size=$((_size))
+  x86_64-elf-readelf --section-headers --wide "$_elf" | \
+    awk -F '[ \t\[\]]+' \
+        '{ if ( $2 ~ /^[0-9]+$/ && $4 == "PROGBITS" && $9 ~ /A/ )
+           { print $5, $6, $7} }' | \
+    while read -r _addr _offs _size; do
+      _addr=$((0x$_addr))
+      _offs=$((0x$_offs))
+      _size=$((0x$_size))
+
       if [ "$_size" -ne 0 ]; then
-        if [ $((_addr + _size)) -gt "$secsize" ]; then
-          die "copyelf ($_elf) is over sector size ($secsize) bytes."
+        if [ "$_maxsz" -gt 0 ] && [ $((_addr + _size)) -gt "$_maxsz" ]; then
+          die "copyelf ($_elf) is over maximum size ($_maxsz) bytes."
         fi
         dd if="$_elf" of="$_img" bs=1 skip="$_offs" \
            seek="$((_imgoffs + _addr))" count="$_size" conv=notrunc \
@@ -119,6 +123,69 @@ copyelf () {
   unset _elf
   unset _img
   unset _imgoffs
+  unset _maxsz
+}
+
+# get symbol address from anf ELF file
+# arguments
+#  1. ELF file
+#  2. symbol name
+getsymaddr () {
+  _elf="$1"
+  _sym="$2"
+
+  _addr=$(x86_64-elf-readelf --symbols "$_elf" | \
+            awk -F '[ :]+' \
+                '{ if ( $2 ~ /^[0-9]+$/ && $9 == "'"$_sym"'" ) { print $3 }}' )
+  if [ -z "$_addr" ]; then
+    die "getsymaddr: symbol ($_sym) not found in $_elf."
+  fi
+  _addr=$((0x$_addr))
+
+  echo "$_addr"
+
+  unset _elf
+  unset _sym
+  unset _addr
+}
+
+# get symbol value in anf ELF file
+# arguments
+#  1. ELF file
+#  2. binary file
+#  3. symbol name
+#  4. value
+#  5. length in bytes
+#  6. offset in byte from start of file (eg. boot sector in image), defaul 0
+setsymval () {
+  _elf="$1"
+  _bin="$2"
+  _sym="$3"
+  _val="$4"
+  _len="$5"
+  _offs="${6:-0}"
+
+  _addr=$(getsymaddr "$_elf" "$_sym")
+  _v="$_val"
+  _valstr=""
+  for i in $(seq 1 "$_len"); do
+    _valstr="$(printf "\\x%02x" "$((_v % 256))")$_valstr"
+    _v=$((_v / 256))
+  done
+  if [ "$_v" -ne 0 ]; then
+    die "setsymval: value ($_val) is too big to fit in $_len bytes."
+  fi
+  unset _v
+  printf "$_valstr" | \
+    dd of="$_bin" bs=1 seek="$((_offs + _addr))" conv=notrunc status=none
+  unset _valstr
+
+  unset _elf
+  unset _bin
+  unset _sym
+  unset _val
+  unset _len
+  unset _offs
 }
 
 # check parameters
@@ -130,13 +197,11 @@ copyelf () {
 #  5. partition size in sectors
 #  6. FS type: FAT, Ext2
 #  7. MBR elf file
-#  8. MBR bin file
-#  9. boot elf file
-# 10. boot bin file
-# 11. loader elf file
-# 12. loader bin file
+#  8. boot elf file
+#  9. loader elf file
+
 checkparams () {
-  if [ $# -ne 12 ]; then
+  if [ $# -ne 9 ]; then
     die "bad argument list"
   fi
 
@@ -147,11 +212,8 @@ checkparams () {
   partsize="$5"
   fstype="$6"
   mbrelf="$7"
-  mbrbin="$8"
-  bootelf="$9"
-  bootbin="${10}"
-  ldrelf="${11}"
-  ldrbin="${12}"
+  bootelf="$8"
+  ldrelf="$9"
 
   secsize="512"
   if [ -n "$partsize" ]; then
@@ -169,8 +231,11 @@ checkparams () {
   fi
 
   case "$fstype" in
-    "Ext2"|"FAT")
-      true
+    "FAT")
+      mfstype="vfat"
+      ;;
+    "Ext2")
+      mfstype="ext2"
       ;;
     *)
       die "bad fs type: \"$fstype\""
@@ -182,7 +247,7 @@ checkparams () {
       if [ -n "$partstart" ] || [ -n "$partsize" ]; then
         die "can not create partition on a floppy disk"
       fi
-      if [ -n "$mbrelf" ] || [ -n "$mbrbin" ] ; then
+      if [ -n "$mbrelf" ] ; then
         die "no mbr need on a floppy disk"
       fi
       ;;
@@ -190,7 +255,7 @@ checkparams () {
       if [ -z "$partstart" ] || [ -z "$partsize" ]; then
         die "missing partititon start and/or size on a hard disk"
       fi
-      if [ -z "$mbrelf" ] || [ -z "$mbrbin" ] ; then
+      if [ -z "$mbrelf" ] ; then
         die "missing mbr on a hard disk"
       fi
       ;;
@@ -199,11 +264,11 @@ checkparams () {
       ;;
   esac
 
-  if [ -z "$bootelf" ] || [ -z "$bootbin" ] ; then
+  if [ -z "$bootelf" ] ; then
     die "missing boot secor"
   fi
 
-  if [ -z "$ldrelf" ] || [ -z "$ldrbin" ] ; then
+  if [ -z "$ldrelf" ] ; then
     die "missing loader"
   fi
 
@@ -225,26 +290,56 @@ checkparams () {
       case "$disktype" in
         fd)
           case "$imgsize" in
-            1440K|2880K)
+            2880K)
               fatmedia="0xf0"
+              mcyl=80
+              mhead=2
+              msec=36
               ;;
-            720K|1200K)
+            1440K)
+              fatmedia="0xf0"
+              mcyl=80
+              mhead=2
+              msec=18
+              ;;
+            1200K)
               fatmedia="0xf9"
+              mcyl=80
+              mhead=2
+              msec=15
+              ;;
+            720K)
+              fatmedia="0xf9"
+              mcyl=80
+              mhead=2
+              msec=9
               ;;
             180K)
               fatmedia="0xfc"
+              mcyl=40
+              mhead=1
+              msec=9
               ;;
             360K)
               fatmedia="0xfd"
+              mcyl=40
+              mhead=2
+              msec=9
               ;;
             160K)
               fatmedia="0xfe"
+              mcyl=40
+              mhead=1
+              msec=8
               ;;
             320K)
               fatmedia="0xff"
+              mcyl=40
+              mhead=2
+              msec=8
               ;;
             *)
-              fatmedia="0xf0"
+              die "Unknown floppy disk size: $imgsize."
               ;;
           esac
           ;;
@@ -361,7 +456,7 @@ createpart () {
 creatembr () {
   case "$disktype" in
     hd)
-      copyelf "$mbrelf" "$imgfile" 0
+      copyelf "$mbrelf" "$imgfile" 0 "$secsize"
       ;;
   esac
 }
@@ -390,7 +485,15 @@ createfs () {
 
 # create boot sector
 createboot () {
-  copyelf "$bootelf" "$imgfile" "$partstartb"
+  copyelf "$bootelf" "$imgfile" "$partstartb" "$secsize"
+
+  case "$disktype" in
+    fd)
+      setsymval "$bootelf" "$imgfile" mcyl "$mcyl" 2 "$partstartb"
+      setsymval "$bootelf" "$imgfile" mhead "$mhead" 2 "$partstartb"
+      setsymval "$bootelf" "$imgfile" msec "$msec" 2 "$partstartb"
+      ;;
+  esac
 }
 
 # mount file system
@@ -402,9 +505,9 @@ mountfs () {
       ;;
     hd)
       _udisksctlout=$(udisksctl loop-setup --file "$imgfile" \
-                                --offset "$partstartb" \
-                                --size "$partsizeb" \
-                                --no-user-interaction --no-partition-scan)
+                              --offset "$partstartb" \
+                              --size "$partsizeb" \
+                              --no-user-interaction --no-partition-scan)
       ;;
   esac
 
@@ -412,10 +515,10 @@ mountfs () {
   if [ -z "$loopdev" ]; then
     die "the name of the loop device not found: \"$_udisksctlout\""
   fi
-
   # test if the loopdev is mounted (automount) and mount if it is not
   if ! mountpoint=$(findmnt --noheading -o TARGET --source "$loopdev"); then
     udisksctlout=$(udisksctl mount --block-device "$loopdev" \
+                             --filesystem-type "$mfstype" \
                              --no-user-interaction)
     mountpoint=$(echo "$udisksctlout" | grep -o '/media/'"$USER"'/[^ ]\+')
     if [ -z "$mountpoint" ]; then
@@ -446,9 +549,17 @@ umountfs () {
 # copy loader to image
 copyldr () {
   mkdir -p "$mountpoint/$bootdir"
-  cp "$ldrbin" "$mountpoint/$bootdir"
-#  echo "bootdir: $bootdir"  ###
-#  ls -la "$bootdir"         ###
+  copyelf "$ldrelf" "$mountpoint/$bootdir/loader.bin"  ###
+
+  echo "bootdir: $bootdir" >&2       ###
+  ls -la "$mountpoint/$bootdir" >&2  ###
+  ls -la "$ldrelf" >&2               ###
+
+  echo "--------------------------------------"  ###
+  filefrag=$(findex "filefrag")
+  "$filefrag" -b"$secsize" -e -s -v "$mountpoint/$bootdir/loader.bin" ###
+  echo "--------------------------------------"  ###
+
 }
 
 # main function
@@ -472,7 +583,6 @@ main () {
   creatembr
   createfs
   createboot
-
   mountfs
 
   copyldr
