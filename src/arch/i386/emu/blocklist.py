@@ -9,37 +9,53 @@
 import sys
 import struct
 
-# FAT BPB
 # B unsigned char  1
 # H unsigned short 2
 # I unsigned int   4
 
-# Sec offs 	BPB off 	Description
-# 0x00B 	0x00 	WORD 	Bytes per logical sector
-# 0x00D 	0x02 	BYTE 	Logical sectors per cluster
-# 0x00E 	0x03 	WORD 	Reserved logical sectors
-# 0x010 	0x05 	BYTE 	Number of FATs
-# 0x011 	0x06 	WORD 	Root directory entries
-# 0x013 	0x08 	WORD 	Total logical sectors
-# 0x015 	0x0A 	BYTE 	Media descriptor
-# 0x016 	0x0B 	WORD 	Logical sectors per FAT
+# FAT BPB
+# Sec offs	BPB o.	Type		Description
+# 0x00B	0x00	WORD		Bytes per logical sector
+# 0x00D	0x02	BYTE		Logical sectors per cluster
+# 0x00E	0x03	WORD		Reserved logical sectors
+# 0x010	0x05	BYTE		Number of FATs
+# 0x011	0x06	WORD		Root directory entries
+# 0x013	0x08	WORD		Total logical sectors
+# 0x015	0x0A	BYTE		Media descriptor
+# 0x016	0x0B	WORD		Logical sectors per FAT
 
-# 0x018 	0x0D 	WORD 	Physical sectors per track
-# 0x01A 	0x0F 	WORD 	Number of heads
-# 0x01C 	0x11 	DWORD 	Hidden sectors
-# 0x020 	0x15 	DWORD 	Large total logical sectors
+# 0x018	0x0D	WORD		Physical sectors per track
+# 0x01A	0x0F	WORD		Number of heads
+# 0x01C	0x11	DWORD		Hidden sectors
+# 0x020	0x15	DWORD		Large total logical sectors
 
-# 0x024 	0x19 	BYTE 	Physical drive number
-# 0x025 	0x1A 	BYTE 	Flags etc.
-# 0x026 	0x1B 	BYTE 	Extended boot signature (0x29 aka "4.1")
-# 0x027 	0x1C 	DWORD 	Volume serial number
-# 0x02B 	0x20 	11 BYTEs 	Volume label
-# 0x036 	0x2B 	8 BYTEs 	File-system type
+# 0x024	0x19	BYTE		Physical drive number
+# 0x025	0x1A	BYTE		Flags etc.
+# 0x026	0x1B	BYTE		Extended boot signature (0x29 aka "4.1")
+# 0x027	0x1C	DWORD		Volume serial number
+# 0x02B	0x20	11 BYTEs 	Volume label
+# 0x036	0x2B	8 BYTEs 	File-system type
 
 FAT_BPB_SEC_OFFS = 0x0b
 FAT_PBP_FORMAT = "<HBHBHHBHHHIIBBBI11s8s"
 
+# FAT Diectory Entry
+# Byte offs	Type		Value
+# 0x00		8 BYTEs	Short file name
+# 0x08		3 BYTEs	Short file extension
+# 0x0B		1 BYTE		File attributes
+# 0x0C		1 BYTE		Reserved byte
+# 0x0D		1 BYTE		Reserved byte
+# 0x0E		WORD		File creation time
+# 0x10		WORD		File creation date
+# 0x12		WORD		Last access time
+# 0x14		WORD		Reserved Word
+# 0x16		WORD		Last modified time
+# 0x18		WORD		Last modified date
+# 0x1A		WORD		First cluster of file
+# 0x1C		DWORD		File size in bytes
 
+FAT_DIR_ENTRY_FORMAT="<8s3sBBBHHHHHHHI"
 
 def die(text):
     print(f"{progname}:", text, file=sys.stderr)
@@ -119,6 +135,16 @@ print(f"Extended boot signature     : 0x{fat_extended_boot_signature:2x}")
 print(f"Volume serial number        : 0x{fat_volume_serial_number:8x}")
 print(f"Volume label                : {fat_volume_label}")
 print(f"File-system type            : {fat_file_system_type}")
+
+print("--------------------------------------------------")
+print(f"1st sector of root dir      : " \
+      f"{fat_reserved_sectors + fat_number_of_fats * fat_sectors_per_fat}")
+
+packed_data = read(imgfile, offs * 512 + \
+                   (fat_reserved_sectors + fat_number_of_fats * \
+                    fat_sectors_per_fat) * 512,
+                   struct.calcsize(FAT_DIR_ENTRY_FORMAT))
+print("packed_data: ", packed_data)  ###
 
 ################################################################
 #print(f"args.imgfile: {repr(args.imgfile)}")
