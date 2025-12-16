@@ -26,6 +26,19 @@ hd_fat_img = custom_target('hd_fat.img',
                                      loader_elf],
                            output:  'hd_fat.img')
 
+hd_big_fat_img = custom_target('hd_big_fat.img',
+                               command: ['mkimg.sh',
+                                         '@OUTPUT@',
+                                         'hd',
+                                         '1G',
+                                         '2048',
+                                         '2000000',
+                                         'FAT',
+                                         boot_mbr_elf,
+                                         boot_fat_elf,
+                                         loader_elf],
+                               output:  'hd_big_fat.img')
+
 fd_ext2_img = custom_target('fd_ext2.img',
                             command: ['mkimg.sh',
                                       '@OUTPUT@',
@@ -83,6 +96,9 @@ emu_hd_ext2 = run_target('emu_hd_ext2',
 
 emu_hd_fat = run_target('emu_hd_fat',
                         command: ['emu.sh', 'hd', hd_fat_img])
+
+emu_hd_big_fat = run_target('emu_hd_big_fat',
+                            command: ['emu.sh', 'hd', hd_big_fat_img])
 
 emu_fd_ext2 = run_target('emu_fd_ext2',
                          command: ['emu.sh', 'fd', fd_ext2_img])
