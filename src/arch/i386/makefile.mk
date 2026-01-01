@@ -13,3 +13,4 @@ CFLAGS := $(CFLAGS) -m32
 
 $(call include_file,boot/makefile.mk)
 $(call include_file,loader/makefile.mk)
+$(call include_file,emu/makefile.mk)
