@@ -58,7 +58,8 @@ endef
 #$(call update_var,variable_name,from_value,to_value)
 update_var = $(if $(filter $(2),$($(1))),$(patsubst $2,$3,$($1)),$($(1)) $(3))
 
-all: /tmp/lgos/bld/arch/i386/boot/mbr.bin /tmp/lgos/bld/arch/i386/boot/fat.bin /tmp/lgos/bld/arch/i386/boot/ext2.bin /tmp/lgos/bld/arch/i386/loader/loader.bin  ###
+all: /tmp/lgos/bld/arch/i386/emu/hd_ext2.img
+# /tmp/lgos/bld/arch/i386/boot/mbr.bin /tmp/lgos/bld/arch/i386/boot/fat.bin /tmp/lgos/bld/arch/i386/boot/ext2.bin /tmp/lgos/bld/arch/i386/loader/loader.bin  ###
 
 
 include $(SOURCEDIR)/common.mk

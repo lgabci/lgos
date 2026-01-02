@@ -52,7 +52,6 @@
 # | mhead       | number of heads, only FDD        |
 # | msec        | number of sectors, only FDD      |
 # | mfstype     | FS type for udisksctl: vfat/ext2 |
-# | lfstype     | FS type with lowercase letters   |
 # +-------------+----------------------------------+
 
 set -eu
@@ -72,9 +71,14 @@ die () {
 # exit function
 # called on trap
 exitfv () {
+  err="$?"
   trap - EXIT HUP INT QUIT TERM
 
-  umountfs "${mountpoint:-}" "${loopdev:-}"
+  umountfs
+
+  if [ $err -ne 0 ]; then
+    rm -f "$imgfile"
+  fi
 }
 trap exitfv EXIT HUP INT QUIT TERM
 
@@ -98,6 +102,16 @@ tooct () {
   fi
 
   printf "%s" "$_valstr"
+}
+
+# get user ID
+getuid () {
+  id --user
+}
+
+# get group ID
+getgid () {
+  id --group
 }
 
 # find executable file and return it, exit with error if not found
@@ -233,11 +247,11 @@ checkparams () {
   case "$fstype" in
     "FAT")
       mfstype="vfat"
-      lfstype="fat"
+      break
       ;;
     "Ext2")
       mfstype="ext2"
-      lfstype="ext2"
+      break
       ;;
     *)
       die "bad fs type: \"$fstype\""
@@ -260,6 +274,9 @@ checkparams () {
       if [ -z "$mbrelf" ] ; then
         die "missing mbr on a hard disk"
       fi
+
+      partstartb=$((partstart * secsize))
+      partsizeb=$((partsize * secsize))
       ;;
     *)
       die "bad disk type: \"$disktype\""
@@ -275,8 +292,6 @@ checkparams () {
   fi
 
   imgsizes=$(numfmt --from iec --to-unit "$secsize" "$imgsize")
-  partstartb=$((partstart * secsize))
-  partsizeb=$((partsize * secsize))
 
   case "$disktype" in
     "fd")
@@ -421,7 +436,8 @@ createfs () {
   case "$fstype" in
     Ext2)
       mkfsext2=$(findex "mkfs.ext2")
-      "$mkfsext2" -E offset="$partstart" -q "$imgfile" "$partsizek"
+      "$mkfsext2" -E offset="$partstartb,root_owner=$(getuid):$(getgid)" \
+                  -q "$imgfile" "$partsizek"k
       ;;
     FAT)
       mkfsfat=$(findex "mkfs.fat")
@@ -484,46 +500,31 @@ createboot () {
 mountfs () {
   case "$disktype" in
     fd)
-      _udisksctlout=$(udisksctl loop-setup --file "$imgfile" \
-                                --no-user-interaction --no-partition-scan)
+      _opts="loop"
       ;;
     hd)
-      _udisksctlout=$(udisksctl loop-setup --file "$imgfile" \
-                              --offset "$partstartb" \
-                              --size "$partsizeb" \
-                              --no-user-interaction --no-partition-scan)
+      _opts="loop,offset=$partstartb,sizelimit=$partsizeb"
       ;;
   esac
 
-  loopdev=$(echo "$_udisksctlout" | grep -o '/dev/loop[0-9]\+')
-  if [ -z "$loopdev" ]; then
-    die "the name of the loop device not found: \"$_udisksctlout\""
-  fi
-  # test if the loopdev is mounted (automount) and mount if it is not
-  if ! mountpoint=$(findmnt --noheading -o TARGET --source "$loopdev"); then
-    udisksctlout=$(udisksctl mount --block-device "$loopdev" \
-                             --filesystem-type "$mfstype" \
-                             --no-user-interaction)
-    mountpoint=$(echo "$udisksctlout" | grep -o '/media/'"$USER"'/[^ ]\+')
-    if [ -z "$mountpoint" ]; then
-      die "the name of the mount point not found: \"$udisksctlout\""
-    fi
-  fi
+  case "$mfstype" in
+    vfat)
+      _opts="$_opts,uid=$(getuid),gid=$(getgid)"
+      ;;
+  esac
+
+  mountpoint="$imgfile.mnt"
+  mkdir -p "$mountpoint"
+  sudo mount -t "$mfstype" -o "$_opts" "$imgfile" "$mountpoint"
+
+  unset _opts
 }
 
 # umount file system, call by exitfv
 umountfs () {
-  if [ -n "${mountpoint:-}" ] &&
-       findmnt --noheading -o TARGET --target "$mountpoint" >/dev/null; then
-    udisksctl unmount --block-device "$loopdev" \
-              --no-user-interaction >/dev/null
-  fi
-
-  if [ -n "${loopdev:-}" ]; then
-    losetup=$(findex "losetup")
-    if "$losetup" "$loopdev" >/dev/null 2>&1; then
-      udisksctl loop-delete --block-device "$loopdev" \
-                --no-user-interaction >/dev/null
+  if [ -n "${mountpoint:-}" ]; then
+    if findmnt --mountpoint "$mountpoint" >/dev/null; then
+      sudo umount "$mountpoint"
     fi
   fi
 }
@@ -543,7 +544,7 @@ writeblklist() {
 
   protfile=$(echo "$_file" | sed -e 's/[]\/$*.^[]/\\&/g')
 
-  inode=$(LC_ALL=C fls -f "$lfstype" -F -r -i raw -o "$partstart" \
+  inode=$(LC_ALL=C fls -f "$mfstype" -F -r -i raw -o "$partstart" \
                    -b "$secsize" "$imgfile" | \
             sed -n "s/^r\/r \([[:digit:]]\+\):[ \t]\+$protfile/\1/p")
 
@@ -551,7 +552,7 @@ writeblklist() {
     die "writeblklist: file ($_file) not found in image ($imgfile)."
   fi
 
-  fdetails=$(LC_ALL=C istat -f "$lfstype" -b "$secsize" -o "$partstart" \
+  fdetails=$(LC_ALL=C istat -f "$mfstype" -b "$secsize" -o "$partstart" \
                       -i raw "$imgfile" "$inode" | \
                sed -e '1,/Sectors:/d;s/ \+/\n/g')
 
@@ -565,7 +566,7 @@ writeblklist() {
       if [ -n "$a" ] && [ "$a" -gt 0 ]; then
         i=$((i + 1))
         if [ "$i" -gt "$_maxsize" ]; then
-          die "copyldr: too big loader file."
+          die "copyldr: too big file: $_file."
         fi
         a=$((a + partstart))
         printf "$(tooct "$a" 4)"
@@ -581,11 +582,6 @@ copyldr () {
   mkdir -p "$mountpoint/$bootdir"
   copyelf "$ldrelf" "$mountpoint/$bootdir/$ldrbin"
 
-  mount | tail -n 3             >&2  ###
-  echo "$mountpoint/$bootdir"   >&2  ###
-  ls -la "$mountpoint" >&2  ###
-  echo "----------------------" >&2  ###
-  ls -la "$mountpoint/$bootdir" >&2  ###
   writeblklist "$bootdir/$ldrbin" "$mountpoint/$bootdir/$ldrblk" 64
 ##  umountfs
 
@@ -610,7 +606,6 @@ copyldr () {
 # 11. loader elf file
 # 12. loader bin file
 main () {
-  exit 1  ###
   checkparams "$@"
   createimg
   createpart
