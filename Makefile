@@ -9,11 +9,11 @@ ARCH ?= i386
 
 # canned recipes -------------------------------------------------------------
 define CCOMP =
-$(CC) $(CFLAGS) $(EXTRAFLAGS) -o $@ $<
+$(CC) $(CFLAGS) $(EXTRAFLAGS) -MMD -MP -MF $(patsubst %.o,%.d,$@) -o $@ $<
 endef
 
 define ASCOMP =
-$(AS) $(ASFLAGS) $(EXTRAFLAGS) -o $@ $<
+$(AS) $(ASFLAGS) $(EXTRAFLAGS) -MMD -MP -MF $(patsubst %.o,%.d,$@) -o $@ $<
 endef
 
 define ELFCOMP =
@@ -54,6 +54,8 @@ LDFLAGS := -ffreestanding -nostdlib -nostdinc
 bootsrcdir := $(ROOTSRCDIR)/src/arch/$(ARCH)/boot
 bootblddir := $(ROOTBLDDIR)/bld/arch/$(ARCH)/boot
 
+-include $(wildcard $(bootblddir)/*.d)
+
 $(bootblddir)/%.o: EXTRAFLAGS += -m16
 $(bootblddir)/init.o: $(bootsrcdir)/init.S | $(bootblddir)
 
@@ -66,6 +68,8 @@ $(bootblddir):
 # loader ---------------------------------------------------------------------
 loadersrcdir := $(ROOTSRCDIR)/src/arch/$(ARCH)/loader
 loaderblddir := $(ROOTBLDDIR)/bld/arch/$(ARCH)/loader
+
+-include $(wildcard $(loaderblddir)/*.d)
 
 $(loaderblddir)/%.o: EXTRAFLAGS += -m16
 $(loaderblddir)/init.o: $(loadersrcdir)/init.S | $(loaderblddir)
@@ -80,6 +84,8 @@ $(loaderblddir):
 # kernel ---------------------------------------------------------------------
 kernelsrcdir := $(ROOTSRCDIR)/src/arch/$(ARCH)/kernel
 kernelblddir := $(ROOTBLDDIR)/bld/arch/$(ARCH)/kernel
+
+-include $(wildcard $(kernelblddir)/*.d)
 
 $(kernelblddir)/%.o: EXTRAFLAGS += -m32
 $(kernelblddir)/init.o: $(kernelsrcdir)/init.S | $(kernelblddir)
