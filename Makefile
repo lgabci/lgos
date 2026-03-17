@@ -16,8 +16,12 @@ define ASCOMP =
 $(AS) $(ASFLAGS) $(EXTRAFLAGS) -MMD -MP -MF $(patsubst %.o,%.d,$@) -o $@ $<
 endef
 
-define ELFCOMP =
-$(LD) $(LDFLAGS) $(EXTRAFLAGS) -o $@ $^
+define ELF =
+$(LD) $(LDFLAGS) $(EXTRAFLAGS) -Wl,-Map=$(patsubst %.elf,%.map,$@) -o $@ $^
+endef
+
+define BIN =
+$(OBJCOPY) -O binary $< $@
 endef
 
 define MKDIR =
@@ -28,9 +32,9 @@ endef
 ifeq ($(ARCH),i386)
 
 .PHONY: all
-all: /tmp/lgos/bld/arch/i386/boot/mbr.elf \
-/tmp/lgos/bld/arch/i386/loader/loader.elf \
-/tmp/lgos/bld/arch/i386/kernel/kernel.elf  ###
+all: /tmp/lgos/bld/arch/i386/boot/mbr.bin \
+/tmp/lgos/bld/arch/i386/loader/loader.bin \
+/tmp/lgos/bld/arch/i386/kernel/kernel.bin  ###
 
 
 EXTRA_FLAGS :=
@@ -62,6 +66,8 @@ $(bootblddir)/init.o: $(bootsrcdir)/init.S | $(bootblddir)
 $(bootblddir)/mbr.elf: EXTRAFLAGS += -T $(bootsrcdir)/mbr.ld
 $(bootblddir)/mbr.elf: $(bootblddir)/init.o
 
+$(bootblddir)/mbr.bin: $(bootblddir)/mbr.elf
+
 $(bootblddir):
 	$(MKDIR)
 
@@ -76,6 +82,8 @@ $(loaderblddir)/init.o: $(loadersrcdir)/init.S | $(loaderblddir)
 
 $(loaderblddir)/loader.elf: EXTRAFLAGS += -T $(loadersrcdir)/loader.ld
 $(loaderblddir)/loader.elf: $(loaderblddir)/init.o
+
+$(loaderblddir)/loader.bin: $(loaderblddir)/loader.elf
 
 $(loaderblddir):
 	$(MKDIR)
@@ -93,6 +101,8 @@ $(kernelblddir)/init.o: $(kernelsrcdir)/init.S | $(kernelblddir)
 $(kernelblddir)/kernel.elf: EXTRAFLAGS += -T $(kernelsrcdir)/kernel.ld
 $(kernelblddir)/kernel.elf: $(kernelblddir)/init.o
 
+$(kernelblddir)/kernel.bin: $(kernelblddir)/kernel.elf
+
 $(kernelblddir):
 	$(MKDIR)
 
@@ -108,7 +118,10 @@ endif
 	$(error Unknown recipe: $< -> $@)))
 
 %.elf:
-	$(ELFCOMP)
+	$(ELF)
+
+%.bin:
+	$(BIN)
 
 .PHONY: clean
 clean:
