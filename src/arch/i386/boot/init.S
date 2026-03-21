@@ -2,4 +2,6 @@
 
 .globl start
 start:
-        nop
+        cli
+        hlt
+        jmp     start

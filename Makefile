@@ -32,10 +32,7 @@ endef
 ifeq ($(ARCH),i386)
 
 .PHONY: all
-all: /tmp/lgos/bld/arch/i386/boot/mbr.bin \
-/tmp/lgos/bld/arch/i386/loader/loader.bin \
-/tmp/lgos/bld/arch/i386/kernel/kernel.bin  ###
-
+all: emu_hd_ext2
 
 EXTRA_FLAGS :=
 
@@ -52,8 +49,6 @@ ASFLAGS := $(CFLAGS)
 
 LDFLAGS := -ffreestanding -nostdlib -nostdinc
 
-
-
 # boot -----------------------------------------------------------------------
 bootsrcdir := $(ROOTSRCDIR)/src/arch/$(ARCH)/boot
 bootblddir := $(ROOTBLDDIR)/bld/arch/$(ARCH)/boot
@@ -62,9 +57,10 @@ bootblddir := $(ROOTBLDDIR)/bld/arch/$(ARCH)/boot
 
 $(bootblddir)/%.o: EXTRAFLAGS += -m16
 $(bootblddir)/init.o: $(bootsrcdir)/init.S | $(bootblddir)
+$(bootblddir)/video.o: $(bootsrcdir)/video.S | $(bootblddir)
 
 $(bootblddir)/mbr.elf: EXTRAFLAGS += -T $(bootsrcdir)/mbr.ld
-$(bootblddir)/mbr.elf: $(bootblddir)/init.o
+$(bootblddir)/mbr.elf: $(bootblddir)/init.o $(bootblddir)/video.o
 
 $(bootblddir)/mbr.bin: $(bootblddir)/mbr.elf
 
@@ -88,7 +84,6 @@ $(loaderblddir)/loader.bin: $(loaderblddir)/loader.elf
 $(loaderblddir):
 	$(MKDIR)
 
-
 # kernel ---------------------------------------------------------------------
 kernelsrcdir := $(ROOTSRCDIR)/src/arch/$(ARCH)/kernel
 kernelblddir := $(ROOTBLDDIR)/bld/arch/$(ARCH)/kernel
@@ -105,6 +100,21 @@ $(kernelblddir)/kernel.bin: $(kernelblddir)/kernel.elf
 
 $(kernelblddir):
 	$(MKDIR)
+
+# emu ------------------------------------------------------------------------
+emusrcdir := $(ROOTSRCDIR)/src/arch/$(ARCH)/emu
+emublddir := $(ROOTBLDDIR)/bld/arch/$(ARCH)/emu
+
+$(emublddir)/hd_ext2.img: $(bootblddir)/mbr.bin $(loaderblddir)/loader.bin \
+$(kernelblddir)/kernel.bin | $(emublddir)
+	$(emusrcdir)/mkimg.sh $@ $^
+
+$(emublddir):
+	$(MKDIR)
+
+.PHONY: emu_hd_ext2
+emu_hd_ext2:
+	$(emusrcdir)/emu.sh hd $(emublddir)/hd_ext2.img
 
 endif
 
