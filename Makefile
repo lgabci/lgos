@@ -7,6 +7,8 @@ ROOTSRCDIR := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 ROOTBLDDIR ?= /tmp/lgos
 ARCH ?= i386
 
+all: emu_hd_ext2
+
 # canned recipes -------------------------------------------------------------
 define CCOMP =
 $(CC) $(CFLAGS) $(EXTRAFLAGS) -MMD -MP -MF $(patsubst %.o,%.d,$@) -o $@ $<
@@ -28,6 +30,24 @@ define MKDIR =
 mkdir -p $@
 endef
 
+# common rules ---------------------------------------------------------------
+%.o:
+	$(if $(filter %.c,$<), \
+	$(CCOMP), \
+	$(if $(filter %.S,$<), \
+	$(ASCOMP), \
+	$(error Unknown recipe: $< -> $@)))
+
+%.elf:
+	$(ELF)
+
+%.bin:
+	$(BIN)
+
+.PHONY: clean
+clean:
+	rm -rf $(ROOTBLDDIR)
+
 # i386 -----------------------------------------------------------------------
 ifeq ($(ARCH),i386)
 
@@ -43,9 +63,9 @@ OBJCOPY := x86_64-elf-objcopy
 STRIP := x86_64-elf-strip
 LD := x86_64-elf-gcc
 
-CFLAGS := -Wall -Wextra -pedantic -Werror -ffreestanding -O3 -c
+CFLAGS := -c -Wall -Wextra -pedantic -Werror -ffreestanding -O3
 
-ASFLAGS := $(CFLAGS)
+ASFLAGS := -c -Wa,--fatal-warnings
 
 LDFLAGS := -ffreestanding -nostdlib -nostdinc
 
@@ -60,7 +80,7 @@ $(bootblddir)/init.o: $(bootsrcdir)/init.S | $(bootblddir)
 $(bootblddir)/video.o: $(bootsrcdir)/video.S | $(bootblddir)
 
 $(bootblddir)/mbr.elf: EXTRAFLAGS += -T $(bootsrcdir)/mbr.ld
-$(bootblddir)/mbr.elf: $(bootblddir)/init.o $(bootblddir)/video.o
+$(bootblddir)/mbr.elf: $(addprefix $(bootblddir)/,init.o video.o)
 
 $(bootblddir)/mbr.bin: $(bootblddir)/mbr.elf
 
@@ -77,7 +97,7 @@ $(loaderblddir)/%.o: EXTRAFLAGS += -m16
 $(loaderblddir)/init.o: $(loadersrcdir)/init.S | $(loaderblddir)
 
 $(loaderblddir)/loader.elf: EXTRAFLAGS += -T $(loadersrcdir)/loader.ld
-$(loaderblddir)/loader.elf: $(loaderblddir)/init.o
+$(loaderblddir)/loader.elf: $(addprefix $(loaderblddir)/,init.o)
 
 $(loaderblddir)/loader.bin: $(loaderblddir)/loader.elf
 
@@ -94,7 +114,7 @@ $(kernelblddir)/%.o: EXTRAFLAGS += -m32
 $(kernelblddir)/init.o: $(kernelsrcdir)/init.S | $(kernelblddir)
 
 $(kernelblddir)/kernel.elf: EXTRAFLAGS += -T $(kernelsrcdir)/kernel.ld
-$(kernelblddir)/kernel.elf: $(kernelblddir)/init.o
+$(kernelblddir)/kernel.elf: $(addprefix $(kernelblddir)/,init.o)
 
 $(kernelblddir)/kernel.bin: $(kernelblddir)/kernel.elf
 
@@ -113,26 +133,7 @@ $(emublddir):
 	$(MKDIR)
 
 .PHONY: emu_hd_ext2
-emu_hd_ext2:
+emu_hd_ext2: $(emublddir)/hd_ext2.img
 	$(emusrcdir)/emu.sh hd $(emublddir)/hd_ext2.img
 
 endif
-
-
-# common rules ---------------------------------------------------------------
-%.o:
-	$(if $(filter %.c,$<), \
-	$(CCOMP), \
-	$(if $(filter %.S,$<), \
-	$(ASCOMP), \
-	$(error Unknown recipe: $< -> $@)))
-
-%.elf:
-	$(ELF)
-
-%.bin:
-	$(BIN)
-
-.PHONY: clean
-clean:
-	rm -rf $(ROOTBLDDIR)

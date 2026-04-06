@@ -10,7 +10,8 @@ PHDRS {
 }
 
 MEMORY {
-  ram  (rwx) : ORIGIN = 0x0,        LENGTH = 0x1b8
+  ram  (rwx) : ORIGIN = 0x0,        LENGTH = 0x1be
+  mbr  (r)   : ORIGIN = 0x1be,      LENGTH = 0x40
   bsgn (r)   : ORIGIN = 0x1fe,      LENGTH = 0x2
   bss  (rw)  : ORIGIN = 0x200,      LENGTH = 0x200
 }
@@ -37,6 +38,8 @@ SECTIONS {
   } >bsgn :bsgn
 
   __data_end = .;
+  __text_and_data_size = __data_end - __text_start;
+
   __bss_start = .;
 
   .bss : {
@@ -44,6 +47,7 @@ SECTIONS {
   } >bss :bss
 
   __bss_end = .;
+  __bss_size = __bss_end - __bss_start;
   . = ALIGN(0x200);
   __end = .;
 }
