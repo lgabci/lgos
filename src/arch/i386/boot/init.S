@@ -34,14 +34,17 @@ rep     movsb
         ljmp    $NEWSEG, $1f
 1:
 
+        call    initvideo
+        movw    $welstr, %si
+        call    print
+
 // ----------------------------------------------------------
-        movw    $0xb800, %ax
-        movw    %ax, %ds
-        movb    $'a, 0
-        movb    $2, 1
 1:      hlt
         jmp     1b
 // ----------------------------------------------------------
+
+.section .data
+welstr: .asciz "MBR\n\r"
 
 .section .bss
 
