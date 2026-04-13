@@ -5,6 +5,7 @@ ENTRY(start)
 PHDRS {
   text PT_LOAD;
   data PT_LOAD;
+  mbr  PT_LOAD;
   bsgn PT_LOAD;
   bss  PT_LOAD;
 }
@@ -31,6 +32,12 @@ SECTIONS {
   .data : ALIGN(1) {
     *(.data)
   } >ram :data
+
+  __mbr_start = .;
+  .mbr : ALIGN(1) {
+    *(.mbr)
+  } >mbr :mbr
+  __mbr_end = .;
 
   .bootsign : {
     BYTE(0x55)

@@ -38,6 +38,8 @@ rep     movsb
         movw    $welstr, %si
         call    print
 
+        call    getbootsec
+
 // ----------------------------------------------------------
 1:      hlt
         jmp     1b

@@ -12,4 +12,4 @@ imgfile="$1"
 mbrbin="$2"
 
 truncate -s "$imgsize" "$imgfile"
-dd if="$mbrbin" of="$imgfile" bs=512 iflag=fullblock
+dd if="$mbrbin" of="$imgfile" bs=512 conv=notrunc iflag=fullblock
