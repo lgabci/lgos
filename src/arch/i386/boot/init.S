@@ -1,5 +1,6 @@
 /* LGOS boot loader init asm file */
-.code16gcc
+.code16
+.arch i8086,nojumps
 
 #define OLDSEG  0x7c0
 #define NEWSEG  0x600
@@ -38,6 +39,7 @@ rep     movsb
         movw    $welstr, %si
         call    print
 
+        call    initdisk        // with unmodified DX from BIOS
         call    getbootsec
 
 // ----------------------------------------------------------

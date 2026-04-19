@@ -1,5 +1,6 @@
 /* LGOS loader init asm file */
-.code16gcc
+.code16
+.arch i8086,nojumps
 
 .globl start
 start:

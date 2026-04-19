@@ -79,9 +79,12 @@ $(bootblddir)/%.o: EXTRAFLAGS += -m16
 $(bootblddir)/init.o: $(bootsrcdir)/init.S | $(bootblddir)
 $(bootblddir)/video.o: $(bootsrcdir)/video.S | $(bootblddir)
 $(bootblddir)/mbr.o: $(bootsrcdir)/mbr.S | $(bootblddir)
+$(bootblddir)/misc.o: $(bootsrcdir)/misc.S | $(bootblddir)
+$(bootblddir)/disk.o: $(bootsrcdir)/disk.S | $(bootblddir)
 
 $(bootblddir)/mbr.elf: EXTRAFLAGS += -T $(bootsrcdir)/mbr.ld
-$(bootblddir)/mbr.elf: $(addprefix $(bootblddir)/,init.o video.o mbr.o)
+$(bootblddir)/mbr.elf: $(addprefix $(bootblddir)/,init.o video.o mbr.o misc.o \
+disk.o)
 
 $(bootblddir)/mbr.bin: $(bootblddir)/mbr.elf
 

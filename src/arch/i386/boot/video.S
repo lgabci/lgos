@@ -1,5 +1,6 @@
 /* LGOS boot loader video asm file */
-.code16gcc
+.code16
+.arch i8086,nojumps
 
 #define INTVIDEO        0x10
 #define TTYOUT          0x0e

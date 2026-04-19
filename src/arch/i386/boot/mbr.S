@@ -1,6 +1,6 @@
-/* LGOS boot loader init asm file */
-.code16gcc
-.arch i8086
+/* LGOS boot loader mbr asm file */
+.code16
+.arch i8086,nojumps
 
 #define MBRCOUNT        4
 #define MBRBOOT         0x80
@@ -28,7 +28,7 @@ getbootsec:
 1:      testb   $MBRBOOT, MBRSTAT(%bx)
         jz      2f
         cmpb    $0, MBRPTYPE(%bx)
-        jz      2f
+        je      3f
 
         incw    %si
         movw    MBRLBA(%bx), %ax
@@ -37,7 +37,20 @@ getbootsec:
 2:      addw    $MBRSIZE, %bx
         loop    1b
 
+        cmpw    $1, %si
+        jne     3f
+
+/// disk read
+
+
+
         ret
+
+3:      movw    $invstr, %si
+        jmp     die
+
+.section .data
+invstr: .asciz "Invalid MBR.\r\n"
 
 .section .mbr, "a", @progbits
 mbr:    .space 4 * MBRSIZE
