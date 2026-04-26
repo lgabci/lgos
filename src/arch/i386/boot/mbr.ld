@@ -34,8 +34,7 @@ SECTIONS {
   } >ram :data
 
   __mbr_start = .;
-  .mbr : ALIGN(1) {
-    *(.mbr)
+  .mbr (NOLOAD) : ALIGN(1) {
   } >mbr :mbr
   __mbr_end = .;
 

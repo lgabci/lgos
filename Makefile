@@ -2,6 +2,7 @@
 
 MAKEFLAGS += -rR
 .SUFFIXES:
+.DELETE_ON_ERROR:
 
 ROOTSRCDIR := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 ROOTBLDDIR ?= /tmp/lgos
@@ -67,7 +68,7 @@ CFLAGS := -c -Wall -Wextra -pedantic -Werror -ffreestanding -O3
 
 ASFLAGS := -c -Wa,--fatal-warnings
 
-LDFLAGS := -ffreestanding -nostdlib -nostdinc
+LDFLAGS := -ffreestanding -nostdlib -nostdinc -Wl,--fatal-warnings
 
 # boot -----------------------------------------------------------------------
 bootsrcdir := $(ROOTSRCDIR)/src/arch/$(ARCH)/boot
@@ -85,8 +86,6 @@ $(bootblddir)/disk.o: $(bootsrcdir)/disk.S | $(bootblddir)
 $(bootblddir)/mbr.elf: EXTRAFLAGS += -T $(bootsrcdir)/mbr.ld
 $(bootblddir)/mbr.elf: $(addprefix $(bootblddir)/,init.o video.o mbr.o misc.o \
 disk.o)
-
-$(bootblddir)/mbr.bin: $(bootblddir)/mbr.elf
 
 $(bootblddir):
 	$(MKDIR)
@@ -129,7 +128,7 @@ $(kernelblddir):
 emusrcdir := $(ROOTSRCDIR)/src/arch/$(ARCH)/emu
 emublddir := $(ROOTBLDDIR)/bld/arch/$(ARCH)/emu
 
-$(emublddir)/hd_ext2.img: $(bootblddir)/mbr.bin $(loaderblddir)/loader.bin \
+$(emublddir)/hd_ext2.img: $(bootblddir)/mbr.elf $(loaderblddir)/loader.bin \
 $(kernelblddir)/kernel.bin | $(emublddir)
 	$(emusrcdir)/mkimg.sh $@ $^
 
