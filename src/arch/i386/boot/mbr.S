@@ -42,6 +42,8 @@ getbootsec:
 
 /// disk read
 
+movw    $invstr + 2, %si  ///
+jmp     die               ///
 
 
         ret
