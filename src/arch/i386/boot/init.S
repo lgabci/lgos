@@ -2,10 +2,22 @@
 .code16
 .arch i8086,nojumps
 
+
+#define MBR_TARGET      0
+#define FAT_TARGET      1
+#define EXT2_TARGET     2
+
 #define OLDSEG  0x7c0
 #define NEWSEG  0x600
 
 #define STACKSIZE       0x100
+
+#if BS_TARGET == FAT_TARGET
+.section .jstart
+.globl jstart
+jstart:
+        jmp     start
+#endif
 
 .section .text
 
@@ -40,7 +52,8 @@ rep     movsb
         call    print
 
         call    initdisk        // with unmodified DX from BIOS
-        call    getbootsec
+
+        call    main
 
 // ----------------------------------------------------------
 1:      hlt
@@ -48,7 +61,14 @@ rep     movsb
 // ----------------------------------------------------------
 
 .section .data
-welstr: .asciz "MBR\n\r"
+welstr:
+#if BS_TARGET == MBR_TARGET
+        .asciz "MBR\n\r"
+#elif BS_TARGET == FAT_TARGET
+        .asciz "FAT\n\r"
+#elif BS_TARGET == EXT2_TARGET
+        .asciz "Ext2\n\r"
+#endif
 
 .section .bss
 

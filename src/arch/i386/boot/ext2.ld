@@ -37,6 +37,8 @@ SECTIONS {
   } >bsgn :bsgn
 
   __data_end = .;
+  __text_and_data_size = __data_end - __text_start;
+
   __bss_start = .;
 
   .bss : ALIGN(1) {
@@ -44,6 +46,7 @@ SECTIONS {
   } >bss :bss
 
   __bss_end = .;
+  __bss_size = __bss_end - __bss_start;
   . = ALIGN(0x200);
   __end = .;
 }

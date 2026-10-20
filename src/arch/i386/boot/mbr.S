@@ -19,6 +19,10 @@
 
 .section .text
 
+.globl main
+main:
+        ret
+
 .globl getbootsec
 getbootsec:
         movw    $mbr, %bx
