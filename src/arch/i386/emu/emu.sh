@@ -1,5 +1,4 @@
 #!/bin/sh
-
 # LGOS i386 emulator shell script
 
 set -eu

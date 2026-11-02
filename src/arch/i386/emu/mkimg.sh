@@ -8,7 +8,8 @@ set -eu
 
 imgfile="$1"
 mbrelf="$2"
-imgsize=104857600    # 100 MB
+
+imgsize=104857600    # image size in bytes, 100 MB
 partstart=2048       # partition start in sectors
 partsize=20480       # partition size in sectors
 
@@ -34,28 +35,6 @@ copyelf () {
       done
 }
 
-# find executable (if not in PATH)
-# args:
-#  1: executable file name
-findprog () {
-  _prog="$1"
-
-  _fullpath=$(whereis -b $_prog | awk '{print $2}')
-  if [ -z "$_fullpath" ]; then
-    die "Executable \"$_prog\" not found."
-  fi
-  echo "$_fullpath"
-
-  unset _prog
-  unset _fullpath
-}
-
 truncate -s "$imgsize" "$imgfile"
-
-parted=$(findprog parted)
-"$parted" -s "$imgfile" \
-          mklabel msdos \
-          mkpart primary fat16 "$partstart"s "$((partstart + partsize))"s \
-          set 1 boot on
 
 copyelf "$imgfile" "$mbrelf" 0

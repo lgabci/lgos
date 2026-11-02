@@ -12,14 +12,16 @@
 
 #define STACKSIZE       0x100
 
-#if BS_TARGET == FAT_TARGET
-.section .jstart
+#if BS_TARGET == FAT_TARGET     // FAT
+.section .jstart, "ax", @progbits
 .globl jstart
 jstart:
         jmp     start
-#endif
 
 .section .text
+#else                           // MBR, Ext2
+.section .itext, "ax", @progbits
+#endif
 
 .globl start
 start:
@@ -45,6 +47,10 @@ rep     stosb
 rep     movsb
 
         ljmp    $NEWSEG, $1f
+
+#if BS_TARGET != FAT_TARGET     // MBR, Ext2
+.section .text
+#endif
 1:
 
         call    initvideo
