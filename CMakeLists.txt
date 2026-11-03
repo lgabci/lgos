@@ -1,3 +1,5 @@
+# LGOS main Cmake file
+
 cmake_minimum_required(VERSION 3.31)
 
 if(DEFINED ENV{ARCH})
@@ -21,3 +23,4 @@ add_compile_options($<$<COMPILE_LANGUAGE:ASM>:-Wa,--fatal-warnings>)
 add_link_options(-ffreestanding -nostdlib -nostdinc -Wl,--fatal-warnings)
 
 add_subdirectory(src/arch/${ARCH})
+add_subdirectory(doc)
