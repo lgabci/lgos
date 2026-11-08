@@ -2,6 +2,11 @@
 .code16
 .arch i8086,nojumps
 
+/**
+* \file mbr.S
+* LGOS x86 boot mbr asm
+*/
+
 #define MBRCOUNT        4
 #define MBRBOOT         0x80
 
@@ -19,10 +24,41 @@
 
 .section .text
 
+/** \brief mbr main function
+*
+* \par Modified registers
+* \modregs{\a AX, \a BX, \a CX, \a DX, \a SI, \a BP <sub>(BIOS bug)</sub>},
+* \modregs{flags, memory}
+*
+#void main() { }
+*/
 .globl main
 main:
-        ret
+        call    getbootsec
 
+
+// ----------------------------------------------------------
+1:      hlt
+        jmp     1b
+// ----------------------------------------------------------
+
+
+/** \brief get boot sector
+*
+* \details get boot sector LBA number from MBR active entry \n
+* prints error message and halts on errors:
+* - no active partition
+* - multiple active partition
+* - empty active partition type
+*
+* \param[out] AX LBA low 16 bits
+* \param[out] DX LBA hight 16 bits
+*
+* \par Modified registers
+* \modregs{AX, BX, CX, DX, SI, \a BP <sub>(BIOS bug)</sub>, flags, memory}
+*
+#void getbootsec(lba_h DX, lba_l AX) { }
+*/
 .globl getbootsec
 getbootsec:
         movw    $mbr, %bx
@@ -43,12 +79,6 @@ getbootsec:
 
         cmpw    $1, %si
         jne     3f
-
-/// disk read
-
-movw    $invstr + 2, %si  ///
-jmp     die               ///
-
 
         ret
 

@@ -9,19 +9,20 @@
 
 #define INTDISK         0x13
 #define GETSTAT         0x01
+#define READSEC         0x02
 #define GETPRM          0x08
 
 .section .text
 
 /** \brief initialize disk system
 *
-* query CHS geometry by <tt>INT 13, 8</tt> \n
-* sets words \c ncyls, \c nheads, \c nsecs
+* \details query CHS geometry by <tt>INT 13, 8</tt> \n
+* sets words \ref ncyls, \ref nheads, \ref nsecs
 *
-* \param DL BIOS disk ID
+* \param[in] DL BIOS disk ID
 *
 * \par Modified registers
-* \c AX, \c BL, \c CL, \c DX, \c DI, \c flags, \c memory
+* \modregs{AX, BL, \a BH, CL, DX, \a SI, DI, flags, memory}
 *
 #void initdisk(byte DL) { }
 */
@@ -59,26 +60,42 @@ initdisk:
 
         ret
 
+/** \brief read sectors
+*
+* \details reads the given \a lba sector from disk to \a addr memory address
+*
+* \param[in] AX LBA low 16 bits
+* \param[in] DX LBA hight 16 bits
+* \param[in] ES segment address of memory to read
+*
+* \par Modified registers
+* \todo modified registers
+*
+#void readsec(lba_h DX, lba_l AX, seg ES) { }
+*/
 .globl readsec
+
+        movw    $READSEC << 8 | 1, %ax
+        nop  ///
 readsec:
 
 /** \brief disk error
 *
-* prints an error message and halts computer with \ref die
+* \details prints an error message and halts computer with \ref die
 *
-* \param str error message
+* \param[in] str pointer to error message
 *
 * \par Modified registers
-* \modregs_indirect{AX, BH, SI, flags, memory}
+* \modregs{\a AX, \a BH, \a SI, \a flags, \a memory}
 *
-#void diskerr(char* str) { }
+#void diskerr(byte* str) { }
 */
 diskerr:
         movw    $dskerr, %si
         jmp     die
 
 .section .data
-dskerr: .asciz "Disk error.\r\n"
+dskerr: .asciz "Disk error.\r\n"        /**< Disk error message text */
 
 ncyls:  .word 0         /**< number of cylinders */
 nheads: .word 0         /**< number of heads */

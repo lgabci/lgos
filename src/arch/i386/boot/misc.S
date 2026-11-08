@@ -11,12 +11,12 @@
 
 /** \brief die
 *
-* prints an error message and halts computer
+* \details prints an error message and halts computer
 *
 * \param str error message
 *
 * \par Modified registers
-* \c AX, \c BH, \c SI, \c flags, \c memory
+* \modregs{AX, BH, SI, BP (BIOS bug), flags, memory}
 *
 #void die(char * str) { }
 */

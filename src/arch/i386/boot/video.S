@@ -15,6 +15,7 @@ initvideo:
         movb    %bh, vpage
         ret
 
+// mod regs: AX, BH, SI, BP - BIOS bug, flags, memory
 .globl print
 print:
         movb    $TTYOUT, %ah

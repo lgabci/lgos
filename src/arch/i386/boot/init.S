@@ -59,12 +59,7 @@ rep     movsb
 
         call    initdisk        // with unmodified DX from BIOS
 
-        call    main
-
-// ----------------------------------------------------------
-1:      hlt
-        jmp     1b
-// ----------------------------------------------------------
+        jmp     main
 
 .section .data
 welstr:
