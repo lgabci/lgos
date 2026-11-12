@@ -3,9 +3,12 @@
 
 set -eu
 
-if [ $# -ne 2 ]; then
-  echo "$(basename $0): bad argument list" >&2
-  echo "\t$@" >&2
+basename=$(basename "$0")
+if [ "$#" -ne 2 ]; then
+  echo "$basename: run emulator" >&2
+  echo "args:" >&2
+  echo "  disktype: fd/hd" >&2
+  echo "  imgfile:  image file" >&2
   exit 1
 fi
 
