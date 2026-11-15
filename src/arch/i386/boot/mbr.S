@@ -24,7 +24,7 @@
 
 .section .text
 
-/** \brief mbr main function
+/** \brief MBR main function
 *
 * \par Modified registers
 * \modregs{\a AX, \a BX, \a CX, \a DX, \a SI, \a BP <sub>(BIOS bug)</sub>},
@@ -35,6 +35,9 @@
 .globl main
 main:
         call    getbootsec
+        movw    $0x07c0, %bx  ///
+        movw    %bx, %es
+        call    readsec
 
 
 // ----------------------------------------------------------
@@ -43,10 +46,10 @@ main:
 // ----------------------------------------------------------
 
 
-/** \brief get boot sector
+/** \brief Get boot sector
 *
-* \details get boot sector LBA number from MBR active entry \n
-* prints error message and halts on errors:
+* \details Get boot sector LBA number from MBR active entry \n
+* Prints error message and halts on errors:
 * - no active partition
 * - multiple active partition
 * - empty active partition type
@@ -86,7 +89,8 @@ getbootsec:
         jmp     die
 
 .section .data
-invstr: .asciz "Invalid MBR.\r\n"
+invstr: .asciz "Invalid MBR.\r\n"       /**< Invalid MBR error message. */
 
 .section .mbr, "a", @progbits
-mbr:    .space 4 * MBRSIZE
+mbr:    .space 4 * MBRSIZE              /**< Partition table. */
+/**< \todo fix asm.awk to get not only the first tag of '4 * MBR' */

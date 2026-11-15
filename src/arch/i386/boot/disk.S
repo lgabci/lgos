@@ -74,10 +74,40 @@ initdisk:
 #void readsec(lba_h DX, lba_l AX, seg ES) { }
 */
 .globl readsec
+readsec:
+/* sec: 6 bits, lba % nsecs + 1
+   heads: 4 bits, lba / nsecs % nheads
+   cyl: 10 bits, lba / nsecs / nheads */
+        divw    nsecs
+        incw    %dx
+        movw    %dx, %bx        /* sector number */
+
+        xorw    %dx, %dx
+        divw    nheads
+        movb    %dl, %dh        /* head number */
+
+        cmpw    ncyls, %ax      /* cyl number */
+        jae     geomerr
+
+        xchgb   %ah, %al
+        movb    $6, %cl
+        shlb    %cl, %al
+        orb     %bl, %al
+        xchgw   %ax, %cx
+
+        movw    $READSEC << 8 | 1, %ax
+        xorw    %bx, %bx
+
+        int     $INTDISK
+
+        cli     ///
+1:      hlt     ///
+        jmp 1b  ///
+
 
         movw    $READSEC << 8 | 1, %ax
         nop  ///
-readsec:
+
 
 /** \brief disk error
 *
@@ -94,8 +124,13 @@ diskerr:
         movw    $dskerr, %si
         jmp     die
 
+geomerr:
+        movw    $geoerr, %si
+        jmp     die
+
 .section .data
 dskerr: .asciz "Disk error.\r\n"        /**< Disk error message text */
+geoerr: .asciz "Geo error.\r\n"         /**< Disk geo error message text */
 
 ncyls:  .word 0         /**< number of cylinders */
 nheads: .word 0         /**< number of heads */
