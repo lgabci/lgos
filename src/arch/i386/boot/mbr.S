@@ -35,9 +35,9 @@
 .globl main
 main:
         call    getbootsec
-        movw    $0x07c0, %bx  ///
-        movw    %bx, %es
+        movw    $0x07c0, %bx    /** \todo define for BIOS segment */
         call    readsec
+        ljmp    $0x07c0, $0     /** \todo define for BIOS segment */
 
 
 // ----------------------------------------------------------

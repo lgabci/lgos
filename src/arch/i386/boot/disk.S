@@ -36,6 +36,7 @@ initdisk:
         sti                     // BIOS bug
         popw    %es
         popw    %ds             // BIOS bug
+        jc      diskerr
 
         movb    drive, %dl      // BIOS bug
         movb    $GETSTAT, %ah
@@ -54,7 +55,7 @@ initdisk:
         movw    %ax, ncyls
 
         xorw    %ax, %ax
-        movb    %dl, %al
+        movb    %dh, %al
         incw    %ax
         movw    %ax, nheads
 
@@ -66,18 +67,19 @@ initdisk:
 *
 * \param[in] AX LBA low 16 bits
 * \param[in] DX LBA hight 16 bits
-* \param[in] ES segment address of memory to read
+* \param[in] BX segment address of memory to read
 *
 * \par Modified registers
 * \todo modified registers
 *
-#void readsec(lba_h DX, lba_l AX, seg ES) { }
+#void readsec(lba_h DX, lba_l AX, seg BX) { }
 */
 .globl readsec
 readsec:
 /* sec: 6 bits, lba % nsecs + 1
    heads: 4 bits, lba / nsecs % nheads
    cyl: 10 bits, lba / nsecs / nheads */
+        pushw   %bx             /* segment address to read */
         divw    nsecs
         incw    %dx
         movw    %dx, %bx        /* sector number */
@@ -85,6 +87,7 @@ readsec:
         xorw    %dx, %dx
         divw    nheads
         movb    %dl, %dh        /* head number */
+        movb    drive, %dl      /* BIOS disk ID */
 
         cmpw    ncyls, %ax      /* cyl number */
         jae     geomerr
@@ -97,16 +100,13 @@ readsec:
 
         movw    $READSEC << 8 | 1, %ax
         xorw    %bx, %bx
+        popw    %es
 
         int     $INTDISK
 
-        cli     ///
-1:      hlt     ///
-        jmp 1b  ///
+        /** \todo error handling */
 
-
-        movw    $READSEC << 8 | 1, %ax
-        nop  ///
+        ret
 
 
 /** \brief disk error

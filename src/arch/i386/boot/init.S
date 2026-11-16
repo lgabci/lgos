@@ -7,7 +7,7 @@
 #define FAT_TARGET      1
 #define EXT2_TARGET     2
 
-#define OLDSEG  0x7c0
+#define BIOSSEG 0x7c0
 #define NEWSEG  0x600
 
 #define STACKSIZE       0x100
@@ -19,8 +19,10 @@ jstart:
         jmp     start
 
 .section .text
-#else                           // MBR, Ext2
+#elif BS_TARGET == MBR_TARGET || BS_TARGET == EXT2_TARGET       // MBR, Ext2
 .section .itext, "ax", @progbits
+#else
+#error "Unknown BS_TARGET value"
 #endif
 
 .globl start
@@ -41,7 +43,7 @@ rep     stosb
         movw    $stackend, %sp
         sti
 
-        movw    $__text_start + (OLDSEG - NEWSEG) << 4, %si
+        movw    $__text_start + (BIOSSEG - NEWSEG) << 4, %si
         xorw    %di, %di
         movw    $__text_and_data_size, %cx
 rep     movsb
