@@ -79,12 +79,23 @@ readsec:
 /* sec: 6 bits, lba % nsecs + 1
    heads: 4 bits, lba / nsecs % nheads
    cyl: 10 bits, lba / nsecs / nheads */
-        pushw   %bx             /* segment address to read */
+        pushw   %ax
+        xorw    %ax, %ax
+        xchgw   %ax, %dx
+        divw    nsecs           /* hi word */
+        movw    %ax, %di        /* result hi word */
+        popw    %ax             /* DX = hi word remainder, AX = lo word */
         divw    nsecs
         incw    %dx
-        movw    %dx, %bx        /* sector number */
+        movw    %dx, %si        /* SI = sector number */
 
+        pushw   %ax
         xorw    %dx, %dx
+        movw    %di, %ax        /* DX = 0, AX = result hi word */
+        divw    nheads
+        andw    %dx, %dx        /* hi word = 0 ? */
+        jnz     geomerr
+        popw    %ax             /* DX = 0, AX = result lo word */
         divw    nheads
         movb    %dl, %dh        /* head number */
         movb    drive, %dl      /* BIOS disk ID */
@@ -95,18 +106,27 @@ readsec:
         xchgb   %ah, %al
         movb    $6, %cl
         shlb    %cl, %al
-        orb     %bl, %al
+        orw     %si, %ax
         xchgw   %ax, %cx
 
         movw    $READSEC << 8 | 1, %ax
+        movw    %bx, %es
         xorw    %bx, %bx
-        popw    %es
 
+        pushw   %ax
+        stc                     /* BIOS bug */
         int     $INTDISK
+        sti                     /* BIOS bug */
+        popw    %ax
 
+        jnc     2f
+
+        cli         ///
+1:      hlt         ///
+        jmp     1b  ///
         /** \todo error handling */
 
-        ret
+2:      ret
 
 
 /** \brief disk error

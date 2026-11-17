@@ -25,13 +25,13 @@ add_custom_command(
   COMMENT "Create HDD FAT image file ..."
 )
 
-add_custom_target(emu_hd_ext2
+add_custom_target(emu_hd_ext2 ALL
   COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/emu.sh" "hd" ${img_hdd_ext2}
   DEPENDS ${img_hdd_ext2}
   COMMENT "Running emulator on HDD Ext2 image ..."
 )
 
-add_custom_target(emu_hd_fat ALL
+add_custom_target(emu_hd_fat
   COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/emu.sh" "hd" ${img_hdd_fat}
   DEPENDS ${img_hdd_fat}
   COMMENT "Running emulator on HDD FAT image ..."
